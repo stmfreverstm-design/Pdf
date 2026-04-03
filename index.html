@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف</title>
+    <title>المصحف الشريف - دخول آمن</title>
+    
+    <!-- مكتبات PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    
+    <!-- مكتبات Firebase (الإصدار المتوافق) -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
     <style>
         :root { --gold: #c5a059; --bg: #1a1a1a; }
-        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; -webkit-user-select: none; }
+        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; -webkit-user-select: none; font-family: sans-serif; }
         
         #login-screen {
             height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -37,7 +44,7 @@
         }
         canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 98%; }
 
-        #loading { color: var(--gold); font-weight: bold; display: none; margin-top: 15px; }
+        #loading-text { color: var(--gold); font-weight: bold; display: none; margin-top: 15px; }
         
         @media print { body { display: none !important; } }
     </style>
@@ -51,7 +58,7 @@
             <input type="password" id="pass" placeholder="كلمة المرور" autocomplete="off">
             <input type="text" id="code" placeholder="كود التحقق" autocomplete="off">
             <button onclick="checkAccess()">الدخول</button>
-            <div id="loading">جاري التحقق والعرض...</div>
+            <div id="loading-text">جاري التحقق والعرض...</div>
         </div>
     </div>
 
@@ -61,12 +68,44 @@
     </div>
 
     <script>
+        // 1. إعدادات Firebase الخاصة بك
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJwkbfdBb2Yp1igq6SnhCivKWg54m-cOw",
+            authDomain: "pdf1-85845.firebaseapp.com",
+            databaseURL: "https://pdf1-85845-default-rtdb.firebaseio.com",
+            projectId: "pdf1-85845",
+            storageBucket: "pdf1-85845.firebasestorage.app",
+            messagingSenderId: "657876361622",
+            appId: "1:657876361622:web:8c9eb09e1d2da1d0193db7",
+            measurementId: "G-V18B718NTM"
+        };
+
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         const PDF_URL = 'https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/123.pdf';
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
+        // دالة لإنشاء بصمة فريدة للجهاز
+        function getDeviceToken() {
+            return btoa(navigator.userAgent + navigator.language + screen.width + screen.height);
+        }
+
         window.onload = () => {
             if (localStorage.getItem('isLoggedIn') === 'true') {
-                loadSecurePDF();
+                const u = localStorage.getItem('currentUser');
+                const t = localStorage.getItem('deviceToken');
+                
+                // التأكد من أن هذا الجهاز لا يزال هو المخول له بالدخول
+                database.ref('sessions/' + u).once('value', (snapshot) => {
+                    if (snapshot.val() === t) {
+                        loadSecurePDF();
+                    } else {
+                        alert("تم تسجيل الدخول من جهاز آخر.");
+                        logout();
+                    }
+                });
             }
         };
 
@@ -76,20 +115,40 @@
             const c = document.getElementById('code').value.trim();
 
             const isValidUser = (c === "2534gfsw26ft2r72t75e2e7#_" && 
-                               ((u === "seif" || u === "tarek" || u === "000") && p === "123") || 
-                               (u === "000" && p === "000"));
+                                ((u === "seif" || u === "tarek" || u === "000") && p === "123") || 
+                                (u === "000" && p === "000"));
 
             if (isValidUser) {
-                localStorage.setItem('isLoggedIn', 'true');
-                loadSecurePDF();
+                const deviceToken = getDeviceToken();
+                
+                // فحص قاعدة البيانات
+                database.ref('sessions/' + u).once('value', (snapshot) => {
+                    const registeredToken = snapshot.val();
+
+                    if (!registeredToken || registeredToken === deviceToken) {
+                        // السماح بالدخول وتسجيل الجهاز
+                        database.ref('sessions/' + u).set(deviceToken);
+                        localStorage.setItem('isLoggedIn', 'true');
+                        localStorage.setItem('currentUser', u);
+                        localStorage.setItem('deviceToken', deviceToken);
+                        loadSecurePDF();
+                    } else {
+                        alert("عذراً، هذا الحساب يعمل حالياً على جهاز آخر.");
+                    }
+                });
             } else {
                 alert("بيانات الدخول غير صحيحة");
             }
         }
 
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
         async function loadSecurePDF() {
             document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading-text').style.display = 'block';
             document.getElementById('viewer-container').style.display = 'block';
 
             try {
@@ -109,20 +168,17 @@
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
                     container.appendChild(canvas);
                 }
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loading-text').style.display = 'none';
             } catch (e) {
                 alert("حدث خطأ أثناء تحميل الملف");
-                localStorage.removeItem('isLoggedIn');
-                location.reload();
+                logout();
             }
         }
 
+        // حماية إضافية
         document.addEventListener('contextmenu', e => e.preventDefault());
-        
         window.addEventListener('keydown', e => {
-            if (e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u' || e.key === 'i' || e.key === 'j' || e.key === 'c')) {
-                e.preventDefault();
-            }
+            if (e.ctrlKey && ['s','p','u','i','j','c'].includes(e.key.toLowerCase())) e.preventDefault();
             if (e.keyCode === 123) e.preventDefault();
         });
 
