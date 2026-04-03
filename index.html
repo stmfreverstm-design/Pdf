@@ -3,233 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - عرض آمن</title>
+    <title>المصحف الشريف - عرض محمي</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <style>
-        :root {
-            --primary-gold: #c5a059;
-            --dark-bg: #1a1a1a;
-            --card-bg: rgba(38, 38, 38, 0.9);
-            --text-color: #e0e0e0;
-        }
-
-        body {
-            font-family: 'Amiri', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--dark-bg);
-            /* الصورة الخلفية من رابط الـ Raw الخاص بك */
+        :root { --gold: #c5a059; --bg: #1a1a1a; }
+        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; -webkit-user-select: none; }
+        
+        #login-screen {
+            height: 100vh; display: flex; align-items: center; justify-content: center;
             background-image: url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow-x: hidden;
+            background-size: cover; position: relative;
+        }
+        #login-screen::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.8); }
+        
+        .card {
+            position: relative; background: rgba(38,38,38,0.9); padding: 30px;
+            border-radius: 15px; border: 1px solid var(--gold); width: 350px; text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; text-align: center; outline: none; }
+        button { width: 100%; padding: 14px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #1a1a1a; transition: 0.3s; }
+        button:hover { background: #b08d4a; }
+
+        #viewer-container { display: none; background: #222; min-height: 100vh; position: relative; }
+        
+        #protection-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999; background: rgba(0,0,0,0); pointer-events: all;
         }
 
-        /* طبقة تعتيم لضمان وضوح النصوص */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.65);
-            z-index: -1;
+        #pdf-render-area {
+            display: flex; flex-direction: column; align-items: center; padding: 20px 0;
         }
+        canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 98%; }
 
-        #login-card {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 15px;
-            border: 1px solid var(--primary-gold);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            text-align: center;
-            width: 90%;
-            max-width: 400px;
-            backdrop-filter: blur(8px);
-            z-index: 10;
-        }
-
-        h2 { color: var(--primary-gold); margin-bottom: 25px; font-size: 1.6rem; text-shadow: 1px 1px 3px black; }
-
-        .input-group { margin-bottom: 15px; text-align: right; }
-        label { display: block; margin-bottom: 5px; color: var(--primary-gold); font-size: 0.9rem; font-weight: bold; }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #555;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            box-sizing: border-box;
-            font-size: 1rem;
-            text-align: center;
-            transition: 0.3s;
-        }
-
-        input:focus { outline: none; border-color: var(--primary-gold); box-shadow: 0 0 8px var(--primary-gold); }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary-gold);
-            color: var(--dark-bg);
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.1rem;
-            cursor: pointer;
-            margin-top: 15px;
-            transition: 0.3s;
-        }
-
-        button:hover { background: #e2bd76; transform: scale(1.02); }
-
-        #loading-screen { display: none; color: var(--primary-gold); margin-top: 20px; font-weight: bold; }
-
-        /* حاوي عرض الـ PDF */
-        #pdf-main-container { display: none; width: 100%; height: 100vh; flex-direction: column; background: #1a1a1a; }
-        #viewerContainer { flex: 1; overflow: auto; padding: 20px 0; user-select: none; }
-        canvas { display: block; margin: 0 auto 25px auto; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-width: 95%; background: white; }
-
+        #loading { color: var(--gold); font-weight: bold; display: none; margin-top: 15px; }
+        
         @media print { body { display: none !important; } }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
-    <div id="login-card">
-        <h2>الدخول للمصحف الشريف</h2>
-        <div class="input-group">
-            <label>اسم المستخدم:</label>
-            <input type="text" id="username" placeholder="أدخل اسمك">
+    <div id="login-screen">
+        <div class="card">
+            <h2 style="color: var(--gold); margin-top: 0;">دخول آمن</h2>
+            <input type="text" id="user" placeholder="اسم المستخدم" autocomplete="off">
+            <input type="password" id="pass" placeholder="كلمة المرور" autocomplete="off">
+            <input type="text" id="code" placeholder="كود التحقق" autocomplete="off">
+            <button onclick="checkAccess()">فتح المستند</button>
+            <div id="loading">جاري التحقق والعرض...</div>
         </div>
-        <div class="input-group">
-            <label>كلمة المرور:</label>
-            <input type="password" id="password" placeholder="******">
-        </div>
-        <div class="input-group">
-            <label>كود التحقق الخاص:</label>
-            <input type="text" id="invite-code" placeholder="كود الوصول">
-        </div>
-        <button onclick="handleLogin()">فتح المصحف</button>
-        <div id="loading-screen">جاري معالجة البيانات المؤمنة...</div>
     </div>
 
-    <div id="pdf-main-container">
-        <div id="viewerContainer">
-            <div id="pdf-viewer"></div>
-        </div>
+    <div id="viewer-container">
+        <div id="protection-layer"></div>
+        <div id="pdf-render-area"></div>
     </div>
 
     <script>
-        // 1. الإعدادات وقائمة المستخدمين
-        const MASTER_INVITE_CODE = "2534gfsw26ft2r72t75e2e7#_"; 
-        const USERS_LIST = [
-            { name: "seif", pass: "123" },
-            { name: "tarek", pass: "123" },
-            { name: "000", pass: "000" }
-        ];
-
         const PDF_URL = 'https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/123.pdf';
-        const PDF_REAL_PASS = '1234567891245248hgdtghnfrdvhb fzedg@#_25D';
-
-        // إعدادات الخطوط العربية (CMaps) لحل مشكلة تكسر الحروف
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        const CMAP_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/cmaps/';
-        const CMAP_PACKED = true;
 
         window.onload = () => {
-            if (localStorage.getItem('secureAccess') === 'granted') {
-                showPDF();
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                loadSecurePDF();
             }
         };
 
-        function handleLogin() {
-            const userIn = document.getElementById('username').value.trim().toLowerCase();
-            const passIn = document.getElementById('password').value;
-            const codeIn = document.getElementById('invite-code').value.trim();
+        async function checkAccess() {
+            const u = document.getElementById('user').value.trim().toLowerCase();
+            const p = document.getElementById('pass').value;
+            const c = document.getElementById('code').value.trim();
 
-            if (codeIn !== MASTER_INVITE_CODE) {
-                alert("كود التحقق غير صحيح!");
-                return;
-            }
+            const isValidUser = (c === "2534gfsw26ft2r72t75e2e7#_" && 
+                               ((u === "seif" || u === "tarek" || u === "000") && p === "123") || 
+                               (u === "000" && p === "000"));
 
-            const userMatch = USERS_LIST.find(u => u.name.toLowerCase() === userIn && u.pass === passIn);
-
-            if (userMatch) {
-                localStorage.setItem('secureAccess', 'granted');
-                showPDF();
+            if (isValidUser) {
+                localStorage.setItem('isLoggedIn', 'true');
+                loadSecurePDF();
             } else {
-                alert("خطأ في اسم المستخدم أو كلمة المرور");
+                alert("بيانات الدخول غير صحيحة");
             }
         }
 
-        async function showPDF() {
-            document.getElementById('login-card').style.display = 'none';
-            document.getElementById('loading-screen').style.display = 'block';
-            
-            try {
-                const response = await fetch(PDF_URL);
-                const data = await response.arrayBuffer();
-                
-                const loadingTask = pdfjsLib.getDocument({ 
-                    data: data, 
-                    password: PDF_REAL_PASS,
-                    cMapUrl: CMAP_URL, // استدعاء ملفات الخطوط
-                    cMapPacked: CMAP_PACKED
-                });
+        async function loadSecurePDF() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('viewer-container').style.display = 'block';
 
-                const pdfDoc = await loadingTask.promise;
-                
-                document.getElementById('pdf-main-container').style.display = 'flex';
-                document.body.style.backgroundImage = "none";
-                document.body.style.backgroundColor = "#1a1a1a";
-                
-                renderPages(pdfDoc);
-            } catch (error) {
-                console.error(error);
-                alert("خطأ في الأمان أو فك تشفير الملف");
-                localStorage.removeItem('secureAccess');
+            try {
+                const loadingTask = pdfjsLib.getDocument(PDF_URL);
+                const pdf = await loadingTask.promise;
+                const container = document.getElementById('pdf-render-area');
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    container.appendChild(canvas);
+                }
+                document.getElementById('loading').style.display = 'none';
+            } catch (e) {
+                alert("حدث خطأ أثناء تحميل الملف");
+                localStorage.removeItem('isLoggedIn');
                 location.reload();
             }
         }
 
-        async function renderPages(pdfDoc) {
-            const viewer = document.getElementById('pdf-viewer');
-            viewer.innerHTML = ''; 
-
-            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                const page = await pdfDoc.getPage(pageNum);
-                
-                // تحسين جودة العرض (Scale 2.0 لشاشات الموبايل)
-                const viewport = page.getViewport({ scale: 2.0 });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                
-                // ضبط بكسلات الكانفس لتكون حادة وواضحة (Sharp Rendering)
-                const pixelRatio = window.devicePixelRatio || 1;
-                canvas.height = viewport.height * pixelRatio;
-                canvas.width = viewport.width * pixelRatio;
-                canvas.style.width = "100%";
-                canvas.style.height = "auto";
-                
-                context.scale(pixelRatio, pixelRatio);
-                viewer.appendChild(canvas);
-
-                await page.render({ 
-                    canvasContext: context, 
-                    viewport: viewport,
-                    intent: 'display'
-                }).promise;
-            }
-        }
-
-        // حماية إضافية ضد الكليك يمين
         document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        window.addEventListener('keydown', e => {
+            if (e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u' || e.key === 'i' || e.key === 'j' || e.key === 'c')) {
+                e.preventDefault();
+            }
+            if (e.keyCode === 123) e.preventDefault();
+        });
+
+        setInterval(() => {
+            if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
+                document.body.innerHTML = "";
+                location.reload();
+            }
+        }, 500);
     </script>
 </body>
 </html>
