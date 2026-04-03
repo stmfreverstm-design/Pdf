@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - حماية الأجهزة الصارمة</title>
+    <title>المصحف الشريف - نظام الحماية المطور</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -37,9 +37,10 @@
                 <h3 id="form-title" style="color: var(--gold);">تسجيل دخول</h3>
                 <input type="text" id="user" placeholder="اسم المستخدم">
                 <input type="password" id="pass" placeholder="كلمة المرور">
+                <input type="number" id="phone" placeholder="رقم الهاتف" style="display:none;">
                 <input type="text" id="code" placeholder="كود التحقق">
                 <button id="main-btn" onclick="handleAuth()">دخول</button>
-                <div id="loading-text">جاري التحقق من بصمة الجهاز...</div>
+                <div id="loading-text">جاري المعالجة...</div>
             </div>
         </div>
     </div>
@@ -63,16 +64,8 @@
         
         let currentMode = 'login';
 
-        // دالة بصمة الجهاز "الصارمة"
         function getStrictToken() {
-            const data = [
-                navigator.userAgent,
-                navigator.language,
-                screen.width + "x" + screen.height,
-                screen.colorDepth,
-                new Date().getTimezoneOffset()
-            ].join('|');
-            return btoa(data);
+            return btoa([navigator.userAgent, screen.width, screen.height, navigator.language].join('|'));
         }
 
         function switchTab(mode) {
@@ -80,57 +73,66 @@
             document.getElementById('tab-login').classList.toggle('active', mode === 'login');
             document.getElementById('tab-register').classList.toggle('active', mode === 'register');
             document.getElementById('form-title').innerText = mode === 'login' ? 'تسجيل دخول' : 'إنشاء حساب جديد';
-            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول' : 'تسجيل وإرسال للواتساب';
+            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول' : 'تسجيل وإرسال';
+            document.getElementById('phone').style.display = mode === 'register' ? 'block' : 'none';
             document.getElementById('code').style.display = mode === 'login' ? 'block' : 'none';
         }
 
         async function handleAuth() {
             const u = document.getElementById('user').value.trim().toLowerCase();
             const p = document.getElementById('pass').value;
+            const ph = document.getElementById('phone').value.trim();
             const c = document.getElementById('code').value.trim();
             const loading = document.getElementById('loading-text');
 
-            if(!u || !p) return alert("يرجى إكمال البيانات");
+            if(!u || !p || (currentMode === 'register' && !ph)) return alert("يرجى إكمال جميع الحقول");
             loading.style.display = 'block';
 
             if (currentMode === 'register') {
-                await database.ref('users/' + u).set({ password: p });
-                fetch(DISCORD_WEBHOOK, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ content: `🆕 حساب جديد محفوظ:\n👤 يوزر: ${u}\n🔑 باسورد: ${p}` })
+                // فحص هل الرقم مكرر في قاعدة البيانات
+                database.ref('users').orderByChild('phone').equalTo(ph).once('value').then(async (snap) => {
+                    if (snap.exists()) {
+                        alert("⚠️ هذا الرقم مسجل بحساب آخر بالفعل!");
+                        loading.style.display = 'none';
+                    } else {
+                        // حفظ الحساب الجديد
+                        await database.ref('users/' + u).set({ password: p, phone: ph });
+                        
+                        // إرسال البيانات للديسكورد بما فيها الرقم
+                        fetch(DISCORD_WEBHOOK, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ 
+                                content: `🆕 **حساب جديد محفوظ**\n👤 الاسم: ${u}\n🔑 الباسورد: ${p}\n📱 الهاتف: ${ph}` 
+                            })
+                        });
+
+                        alert("تم التسجيل! توجه للواتساب لتفعيل حسابك.");
+                        window.location.href = `https://wa.me/201277742850?text=تفعيل حسابي: ${u} (رقم الهاتف: ${ph})`;
+                        loading.style.display = 'none';
+                    }
                 });
-                alert("تم الحفظ! توجه للواتساب لتفعيل حسابك.");
-                window.location.href = `https://wa.me/201277742850?text=أريد تفعيل كود الحساب: ${u}`;
-                loading.style.display = 'none';
             } else {
                 // فحص الدخول
                 database.ref('users/' + u).once('value').then((snap) => {
                     const data = snap.val();
                     if(!data) {
-                        alert("اليوزر غير مسجل.");
+                        alert("اليوزر غير موجود.");
                         loading.style.display = 'none';
                     } else if (data.password !== p) {
-                        alert("الباسورد خطأ! ❌");
+                        alert("الباسورد خطأ!");
                         loading.style.display = 'none';
                     } else if (c !== "2534gfsw26ft2r72t75e2e7#_") {
-                        alert("كود التحقق خطأ.");
+                        alert("كود التحقق غير صحيح.");
                         loading.style.display = 'none';
                     } else {
-                        const myToken = getStrictToken();
-                        // التحقق من الجلسة في الـ Firebase
-                        database.ref('sessions/' + u).once('value').then((sessSnap) => {
-                            const activeToken = sessSnap.val();
-
-                            if (!activeToken) {
-                                // أول مرة يسجل بصمة
-                                database.ref('sessions/' + u).set(myToken).then(() => loadSecurePDF());
-                            } else if (activeToken === myToken) {
-                                // نفس الجهاز
+                        const token = getStrictToken();
+                        database.ref('sessions/' + u).once('value').then((sess) => {
+                            if (!sess.val() || sess.val() === token) {
+                                database.ref('sessions/' + u).set(token);
                                 loadSecurePDF();
                             } else {
-                                // جهاز مختلف
-                                alert("🚨 الحساب مسجل على جهاز آخر بالفعل! لا يمكن الدخول.");
+                                alert("الحساب مسجل على جهاز آخر!");
                                 loading.style.display = 'none';
                             }
                         });
