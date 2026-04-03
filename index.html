@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - دخول آمن</title>
+    <title>المصحف الشريف - نظام الحماية المطور</title>
     
-    <!-- مكتبات PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     
-    <!-- مكتبات Firebase (الإصدار المتوافق) -->
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
     <style>
         :root { --gold: #c5a059; --bg: #1a1a1a; }
-        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; -webkit-user-select: none; font-family: sans-serif; }
+        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; -webkit-user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
         #login-screen {
             height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -26,11 +24,11 @@
         .card {
             position: relative; background: rgba(38,38,38,0.9); padding: 30px;
             border-radius: 15px; border: 1px solid var(--gold); width: 350px; text-align: center;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; text-align: center; outline: none; }
-        button { width: 100%; padding: 14px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #1a1a1a; transition: 0.3s; }
-        button:hover { background: #b08d4a; }
+        button { width: 100%; padding: 14px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #1a1a1a; transition: 0.3s; margin-top: 10px; }
+        button:hover { background: #b08d4a; transform: scale(1.02); }
 
         #viewer-container { display: none; background: #222; min-height: 100vh; position: relative; }
         
@@ -42,9 +40,9 @@
         #pdf-render-area {
             display: flex; flex-direction: column; align-items: center; padding: 20px 0;
         }
-        canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 98%; }
+        canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 98%; border: 1px solid #333; }
 
-        #loading-text { color: var(--gold); font-weight: bold; display: none; margin-top: 15px; }
+        #loading-text { color: var(--gold); font-weight: bold; display: none; margin-top: 15px; font-size: 14px; }
         
         @media print { body { display: none !important; } }
     </style>
@@ -57,8 +55,8 @@
             <input type="text" id="user" placeholder="اسم المستخدم" autocomplete="off">
             <input type="password" id="pass" placeholder="كلمة المرور" autocomplete="off">
             <input type="text" id="code" placeholder="كود التحقق" autocomplete="off">
-            <button onclick="checkAccess()">الدخول</button>
-            <div id="loading-text">جاري التحقق والعرض...</div>
+            <button onclick="checkAccess()">دخول آمن</button>
+            <div id="loading-text">جاري فحص بصمة الجهاز...</div>
         </div>
     </div>
 
@@ -87,9 +85,11 @@
         const PDF_URL = 'https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/123.pdf';
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        // دالة لإنشاء بصمة فريدة للجهاز
+        // دالة لإنشاء بصمة فريدة للجهاز بناءً على مواصفاته
         function getDeviceToken() {
-            return btoa(navigator.userAgent + navigator.language + screen.width + screen.height);
+            const nav = window.navigator;
+            const screenInfo = window.screen;
+            return btoa(nav.userAgent + nav.language + screenInfo.width + screenInfo.height + screenInfo.colorDepth);
         }
 
         window.onload = () => {
@@ -97,12 +97,12 @@
                 const u = localStorage.getItem('currentUser');
                 const t = localStorage.getItem('deviceToken');
                 
-                // التأكد من أن هذا الجهاز لا يزال هو المخول له بالدخول
+                // فحص دائم عند فتح الصفحة للتأكد من عدم دخول جهاز آخر
                 database.ref('sessions/' + u).once('value', (snapshot) => {
                     if (snapshot.val() === t) {
                         loadSecurePDF();
                     } else {
-                        alert("تم تسجيل الدخول من جهاز آخر.");
+                        alert("تم تسجيل الدخول من جهاز آخر لهذا الحساب.");
                         logout();
                     }
                 });
@@ -113,6 +113,7 @@
             const u = document.getElementById('user').value.trim().toLowerCase();
             const p = document.getElementById('pass').value;
             const c = document.getElementById('code').value.trim();
+            const loadingText = document.getElementById('loading-text');
 
             const isValidUser = (c === "2534gfsw26ft2r72t75e2e7#_" && 
                                 ((u === "seif" || u === "tarek" || u === "000") && p === "123") || 
@@ -120,21 +121,29 @@
 
             if (isValidUser) {
                 const deviceToken = getDeviceToken();
-                
-                // فحص قاعدة البيانات
-                database.ref('sessions/' + u).once('value', (snapshot) => {
+                loadingText.innerText = "جاري التحقق من ملكية الجهاز...";
+                loadingText.style.display = 'block';
+
+                // الاتصال بالقاعدة للتحقق من الجهاز المسجل
+                database.ref('sessions/' + u).once('value').then((snapshot) => {
                     const registeredToken = snapshot.val();
 
                     if (!registeredToken || registeredToken === deviceToken) {
-                        // السماح بالدخول وتسجيل الجهاز
-                        database.ref('sessions/' + u).set(deviceToken);
-                        localStorage.setItem('isLoggedIn', 'true');
-                        localStorage.setItem('currentUser', u);
-                        localStorage.setItem('deviceToken', deviceToken);
-                        loadSecurePDF();
+                        // الحساب جديد أو نفس الجهاز المسجل
+                        database.ref('sessions/' + u).set(deviceToken).then(() => {
+                            localStorage.setItem('isLoggedIn', 'true');
+                            localStorage.setItem('currentUser', u);
+                            localStorage.setItem('deviceToken', deviceToken);
+                            loadSecurePDF();
+                        });
                     } else {
-                        alert("عذراً، هذا الحساب يعمل حالياً على جهاز آخر.");
+                        // جهاز مختلف تماماً
+                        loadingText.style.display = 'none';
+                        alert("عذراً، هذا الحساب مفعل على جهاز آخر. لا يمكن استخدامه على جهازين في نفس الوقت.");
                     }
+                }).catch((error) => {
+                    loadingText.style.display = 'none';
+                    alert("خطأ في الاتصال بالخادم: " + error.message);
                 });
             } else {
                 alert("بيانات الدخول غير صحيحة");
@@ -148,7 +157,6 @@
 
         async function loadSecurePDF() {
             document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('loading-text').style.display = 'block';
             document.getElementById('viewer-container').style.display = 'block';
 
             try {
@@ -168,23 +176,23 @@
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
                     container.appendChild(canvas);
                 }
-                document.getElementById('loading-text').style.display = 'none';
             } catch (e) {
                 alert("حدث خطأ أثناء تحميل الملف");
                 logout();
             }
         }
 
-        // حماية إضافية
+        // منع النسخ والتصوير
         document.addEventListener('contextmenu', e => e.preventDefault());
         window.addEventListener('keydown', e => {
             if (e.ctrlKey && ['s','p','u','i','j','c'].includes(e.key.toLowerCase())) e.preventDefault();
             if (e.keyCode === 123) e.preventDefault();
         });
 
+        // كشف فتح أدوات المطور (F12)
         setInterval(() => {
             if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
-                document.body.innerHTML = "";
+                document.body.innerHTML = "Security Triggered";
                 location.reload();
             }
         }, 500);
