@@ -26,7 +26,6 @@
             overflow-x: hidden;
         }
 
-        /* زخرفة إسلامية بسيطة */
         body::before {
             content: "";
             position: fixed;
@@ -38,24 +37,23 @@
 
         #login-card {
             background: var(--card-bg);
-            padding: 40px;
+            padding: 30px;
             border-radius: 15px;
             border: 1px solid var(--primary-gold);
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             text-align: center;
             width: 90%;
             max-width: 400px;
-            transition: all 0.5s ease;
         }
 
-        h2 { color: var(--primary-gold); margin-bottom: 25px; font-size: 1.8rem; }
+        h2 { color: var(--primary-gold); margin-bottom: 20px; font-size: 1.6rem; }
 
-        .input-group { margin-bottom: 20px; text-align: right; }
-        label { display: block; margin-bottom: 8px; color: var(--primary-gold); font-size: 0.9rem; }
+        .input-group { margin-bottom: 15px; text-align: right; }
+        label { display: block; margin-bottom: 5px; color: var(--primary-gold); font-size: 0.85rem; }
 
         input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid #444;
             background: #111;
@@ -77,29 +75,13 @@
             font-weight: bold;
             font-size: 1.1rem;
             cursor: pointer;
-            transition: 0.3s;
+            margin-top: 10px;
         }
-
-        button:hover { background: #e2bd76; transform: translateY(-2px); }
 
         #pdf-main-container { display: none; width: 100%; height: 100vh; flex-direction: column; }
-        
-        #viewerContainer { 
-            flex: 1; 
-            overflow: auto; 
-            background: #333; 
-            padding: 20px 0;
-            -webkit-user-select: none; user-select: none;
-        }
-
-        canvas {
-            display: block;
-            margin: 0 auto 20px auto;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            max-width: 95%;
-        }
-
-        #loading-screen { display: none; color: var(--primary-gold); font-size: 1.2rem; }
+        #viewerContainer { flex: 1; overflow: auto; background: #333; padding: 20px 0; user-select: none; }
+        canvas { display: block; margin: 0 auto 20px auto; box-shadow: 0 0 20px rgba(0,0,0,0.5); max-width: 95%; }
+        #loading-screen { display: none; color: var(--primary-gold); margin-top: 15px; }
 
         @media print { body { display: none !important; } }
     </style>
@@ -116,8 +98,12 @@
             <label>كلمة المرور:</label>
             <input type="password" id="password" placeholder="******">
         </div>
-        <button onclick="handleLogin()">دخول</button>
-        <div id="loading-screen"><br>جاري فتح المصحف الشريف...</div>
+        <div class="input-group">
+            <label>كود التحقق الخاص:</label>
+            <input type="text" id="invite-code" placeholder="أدخل كود الوصول">
+        </div>
+        <button onclick="handleLogin()">فتح المصحف</button>
+        <div id="loading-screen">جاري معالجة البيانات المؤمنة...</div>
     </div>
 
     <div id="pdf-main-container">
@@ -127,29 +113,22 @@
     </div>
 
     <script>
-        // --- 1. قائمة المستخدمين (تستطيع تغييرها هنا) ---
+        // --- 1. الإعدادات وقائمة المستخدمين ---
+        const MASTER_INVITE_CODE = "2534gfsw26ft2r72t75e2e7#_"; // كود الدعوة المطلوب
         const USERS_LIST = [
             { name: "seif", pass: "123" },
             { name: "tarek", pass: "123" },
-            { name: "000", pass: "000" },
-            { name: "000", pass: "000" },
-            { name: "000", pass: "000" },
-            { name: "000", pass: "000" },
-            { name: "000", pass: "000" },
-            { name: "000", pass: "000" },
-            { name: "000", pass: "000" }
+            { name: "user1", pass: "10" } // مثال لمستخدم إضافي
         ];
 
-        // --- 2. إعدادات الملف ---
         const PDF_URL = 'https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/123.pdf';
-        const PDF_REAL_PASS = '1234567891245248hgdtghnfrdvhb fzedg@#_25D'; // الباسورد المعقد للملف
+        const PDF_REAL_PASS = '1234567891245248hgdtghnfrdvhb fzedg@#_25D';
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        // التحقق عند فتح الموقع إذا كان مسجلاً مسبقاً
+        // التحقق من الجلسة المحفوظة
         window.onload = () => {
-            const savedSession = localStorage.getItem('isLoggedIn');
-            if (savedSession === 'true') {
+            if (localStorage.getItem('secureAccess') === 'granted') {
                 showPDF();
             }
         };
@@ -157,15 +136,22 @@
         function handleLogin() {
             const userIn = document.getElementById('username').value.trim().toLowerCase();
             const passIn = document.getElementById('password').value;
+            const codeIn = document.getElementById('invite-code').value.trim();
 
-            // البحث في قائمة المستخدمين
+            // التحقق من كود الدعوة أولاً
+            if (codeIn !== MASTER_INVITE_CODE) {
+                alert("كود التحقق غير صحيح!");
+                return;
+            }
+
+            // التحقق من اسم المستخدم والباسورد
             const userMatch = USERS_LIST.find(u => u.name.toLowerCase() === userIn && u.pass === passIn);
 
             if (userMatch) {
-                localStorage.setItem('isLoggedIn', 'true'); // حفظ الجلسة
+                localStorage.setItem('secureAccess', 'granted');
                 showPDF();
             } else {
-                alert("بيانات الدخول غير صحيحة");
+                alert("خطأ في اسم المستخدم أو كلمة المرور");
             }
         }
 
@@ -176,19 +162,14 @@
             try {
                 const response = await fetch(PDF_URL);
                 const data = await response.arrayBuffer();
-
-                const loadingTask = pdfjsLib.getDocument({
-                    data: data,
-                    password: PDF_REAL_PASS
-                });
-
+                const loadingTask = pdfjsLib.getDocument({ data: data, password: PDF_REAL_PASS });
                 const pdfDoc = await loadingTask.promise;
+                
                 document.getElementById('pdf-main-container').style.display = 'flex';
                 renderPages(pdfDoc);
             } catch (error) {
-                console.error(error);
-                alert("خطأ في تحميل الملف. تأكد من الباسورد أو الرابط.");
-                localStorage.removeItem('isLoggedIn');
+                alert("فشل التحقق من أمان الملف");
+                localStorage.removeItem('secureAccess');
                 location.reload();
             }
         }
@@ -200,15 +181,12 @@
                 const viewport = page.getViewport({ scale: 1.5 });
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+                canvas.height = viewport.height; canvas.width = viewport.width;
                 viewer.appendChild(canvas);
-
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
             }
         }
 
-        // منع كليك يمين
         document.addEventListener('contextmenu', e => e.preventDefault());
     </script>
 </body>
