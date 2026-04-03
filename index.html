@@ -3,70 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - نظام الحماية المطور</title>
+    <title>المصحف الشريف - التسجيل والدخول</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
     <style>
         :root { --gold: #c5a059; --bg: #1a1a1a; }
-        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; -webkit-user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; font-family: 'Segoe UI', sans-serif; color: white; }
         
         #login-screen {
             height: 100vh; display: flex; align-items: center; justify-content: center;
             background-image: url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg');
             background-size: cover; position: relative;
         }
-        #login-screen::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.8); }
+        #login-screen::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.85); }
         
         .card {
-            position: relative; background: rgba(38,38,38,0.9); padding: 30px;
+            position: relative; background: rgba(30,30,30,0.9); padding: 25px;
             border-radius: 15px; border: 1px solid var(--gold); width: 350px; text-align: center;
-            backdrop-filter: blur(5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
         }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; text-align: center; outline: none; }
+
+        .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 1px solid #444; }
+        .tab { padding: 10px; cursor: pointer; color: #888; transition: 0.3s; width: 50%; }
+        .tab.active { color: var(--gold); border-bottom: 2px solid var(--gold); font-weight: bold; }
+
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; text-align: center; outline: none; }
         button { width: 100%; padding: 14px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #1a1a1a; transition: 0.3s; margin-top: 10px; }
         button:hover { background: #b08d4a; transform: scale(1.02); }
 
-        #viewer-container { display: none; background: #222; min-height: 100vh; position: relative; }
+        #viewer-container { display: none; background: #222; min-height: 100vh; }
+        #pdf-render-area { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+        canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 95%; }
         
-        #protection-layer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 9999; background: rgba(0,0,0,0); pointer-events: all;
-        }
-
-        #pdf-render-area {
-            display: flex; flex-direction: column; align-items: center; padding: 20px 0;
-        }
-        canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 98%; border: 1px solid #333; }
-
-        #loading-text { color: var(--gold); font-weight: bold; display: none; margin-top: 15px; font-size: 14px; }
-        
-        @media print { body { display: none !important; } }
+        .msg { font-size: 12px; color: #aaa; margin-top: 10px; line-height: 1.5; }
+        #loading-text { color: var(--gold); font-size: 14px; display: none; margin-top: 10px; }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
     <div id="login-screen">
         <div class="card">
-            <h2 style="color: var(--gold); margin-top: 0;">تسجيل الدخول</h2>
-            <input type="text" id="user" placeholder="اسم المستخدم" autocomplete="off">
-            <input type="password" id="pass" placeholder="كلمة المرور" autocomplete="off">
-            <input type="text" id="code" placeholder="كود التحقق" autocomplete="off">
-            <button onclick="checkAccess()">دخول آمن</button>
-            <div id="loading-text">جاري فحص بصمة الجهاز...</div>
+            <div class="tabs">
+                <div id="tab-login" class="tab active" onclick="switchTab('login')">دخول</div>
+                <div id="tab-register" class="tab" onclick="switchTab('register')">إنشاء حساب</div>
+            </div>
+
+            <div id="form-container">
+                <h3 id="form-title" style="color: var(--gold); margin: 0 0 15px 0;">تسجيل دخول</h3>
+                <input type="text" id="user" placeholder="اسم المستخدم">
+                <input type="password" id="pass" placeholder="كلمة المرور">
+                <input type="text" id="code" placeholder="كود التحقق">
+                
+                <button id="main-btn" onclick="handleAuth()">دخول</button>
+                <div id="loading-text">جاري المعالجة...</div>
+                <p class="msg" id="helper-msg">أدخل بياناتك المسجلة مسبقاً</p>
+            </div>
         </div>
     </div>
 
     <div id="viewer-container">
-        <div id="protection-layer"></div>
         <div id="pdf-render-area"></div>
     </div>
 
     <script>
-        // 1. إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyBJwkbfdBb2Yp1igq6SnhCivKWg54m-cOw",
             authDomain: "pdf1-85845.firebaseapp.com",
@@ -75,127 +77,97 @@
             storageBucket: "pdf1-85845.firebasestorage.app",
             messagingSenderId: "657876361622",
             appId: "1:657876361622:web:8c9eb09e1d2da1d0193db7",
-            measurementId: "G-V18B718NTM"
         };
 
-        // تهيئة Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-
+        const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1481923628181360692/Ov75tKbrtRC6He0UnEFHHDiRhIDNfF6eSp5hRv0mTpCE8hkhH833LyThxddbNtmFlA2R";
         const PDF_URL = 'https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/123.pdf';
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        
+        let currentMode = 'login';
 
-        // دالة لإنشاء بصمة فريدة للجهاز بناءً على مواصفاته
-        function getDeviceToken() {
-            const nav = window.navigator;
-            const screenInfo = window.screen;
-            return btoa(nav.userAgent + nav.language + screenInfo.width + screenInfo.height + screenInfo.colorDepth);
+        function switchTab(mode) {
+            currentMode = mode;
+            document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+            document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+            document.getElementById('form-title').innerText = mode === 'login' ? 'تسجيل دخول' : 'إنشاء حساب جديد';
+            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول' : 'إرسال الطلب وتسجيل';
+            document.getElementById('code').style.display = mode === 'login' ? 'block' : 'none';
+            document.getElementById('helper-msg').innerText = mode === 'login' ? 'أدخل بياناتك المسجلة مسبقاً' : 'بعد التسجيل، ستحتاج للتواصل مع الإدارة لتفعيل حسابك بكود التحقق';
         }
 
-        window.onload = () => {
-            if (localStorage.getItem('isLoggedIn') === 'true') {
-                const u = localStorage.getItem('currentUser');
-                const t = localStorage.getItem('deviceToken');
-                
-                // فحص دائم عند فتح الصفحة للتأكد من عدم دخول جهاز آخر
-                database.ref('sessions/' + u).once('value', (snapshot) => {
-                    if (snapshot.val() === t) {
-                        loadSecurePDF();
-                    } else {
-                        alert("تم تسجيل الدخول من جهاز آخر لهذا الحساب.");
-                        logout();
-                    }
-                });
-            }
-        };
-
-        async function checkAccess() {
+        async function handleAuth() {
             const u = document.getElementById('user').value.trim().toLowerCase();
             const p = document.getElementById('pass').value;
             const c = document.getElementById('code').value.trim();
-            const loadingText = document.getElementById('loading-text');
+            const loading = document.getElementById('loading-text');
 
-            const isValidUser = (c === "2534gfsw26ft2r72t75e2e7#_" && 
-                                ((u === "seif" || u === "tarek" || u === "000") && p === "123") || 
-                                (u === "000" && p === "000"));
+            if(!u || !p) return alert("يرجى ملء البيانات");
 
-            if (isValidUser) {
-                const deviceToken = getDeviceToken();
-                loadingText.innerText = "جاري التحقق من ملكية الجهاز...";
-                loadingText.style.display = 'block';
+            loading.style.display = 'block';
 
-                // الاتصال بالقاعدة للتحقق من الجهاز المسجل
+            if (currentMode === 'register') {
+                // 1. إرسال لـ Discord
+                const msg = {
+                    content: `🆕 **طلب إنشاء حساب جديد**\n👤 الاسم: ${u}\n🔑 الباسورد: ${p}\n📱 وقت الطلب: ${new Date().toLocaleString()}`
+                };
+                
+                try {
+                    await fetch(DISCORD_WEBHOOK, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(msg)
+                    });
+
+                    // 2. التوجيه للواتساب
+                    alert("تم إرسال بياناتك. سيتم تحويلك الآن للواتساب للحصول على كود التحقق الخاص بك.");
+                    const waMsg = encodeURIComponent(`مرحباً، لقد أنشأت حساباً باسم (${u}) وأريد كود التحقق الخاص بي.`);
+                    window.location.href = `https://wa.me/201277742850?text=${waMsg}`;
+                    
+                } catch (err) {
+                    alert("حدث خطأ في الإرسال");
+                }
+            } else {
+                // نظام الدخول وفحص البصمة (نفس المنطق السابق)
                 database.ref('sessions/' + u).once('value').then((snapshot) => {
+                    const token = btoa(navigator.userAgent + screen.width);
                     const registeredToken = snapshot.val();
 
-                    if (!registeredToken || registeredToken === deviceToken) {
-                        // الحساب جديد أو نفس الجهاز المسجل
-                        database.ref('sessions/' + u).set(deviceToken).then(() => {
-                            localStorage.setItem('isLoggedIn', 'true');
-                            localStorage.setItem('currentUser', u);
-                            localStorage.setItem('deviceToken', deviceToken);
-                            loadSecurePDF();
-                        });
-                    } else {
-                        // جهاز مختلف تماماً
-                        loadingText.style.display = 'none';
-                        alert("عذراً، هذا الحساب مفعل على جهاز آخر. لا يمكن استخدامه على جهازين في نفس الوقت.");
+                    // التحقق من كود الأمان العام (الذي أعطيته لي)
+                    if (c !== "2534gfsw26ft2r72t75e2e7#_") {
+                        alert("كود التحقق غير صحيح");
+                        loading.style.display = 'none';
+                        return;
                     }
-                }).catch((error) => {
-                    loadingText.style.display = 'none';
-                    alert("خطأ في الاتصال بالخادم: " + error.message);
-                });
-            } else {
-                alert("بيانات الدخول غير صحيحة");
-            }
-        }
 
-        function logout() {
-            localStorage.clear();
-            location.reload();
+                    if (!registeredToken || registeredToken === token) {
+                        database.ref('sessions/' + u).set(token);
+                        localStorage.setItem('isLoggedIn', 'true');
+                        loadSecurePDF();
+                    } else {
+                        alert("هذا الحساب مسجل على جهاز آخر!");
+                    }
+                    loading.style.display = 'none';
+                });
+            }
         }
 
         async function loadSecurePDF() {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('viewer-container').style.display = 'block';
-
-            try {
-                const loadingTask = pdfjsLib.getDocument(PDF_URL);
-                const pdf = await loadingTask.promise;
-                const container = document.getElementById('pdf-render-area');
-
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 2.0 });
-                    
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-
-                    await page.render({ canvasContext: context, viewport: viewport }).promise;
-                    container.appendChild(canvas);
-                }
-            } catch (e) {
-                alert("حدث خطأ أثناء تحميل الملف");
-                logout();
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+            
+            const pdf = await pdfjsLib.getDocument(PDF_URL).promise;
+            const container = document.getElementById('pdf-render-area');
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                canvas.height = viewport.height; canvas.width = viewport.width;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+                container.appendChild(canvas);
             }
         }
-
-        // منع النسخ والتصوير
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        window.addEventListener('keydown', e => {
-            if (e.ctrlKey && ['s','p','u','i','j','c'].includes(e.key.toLowerCase())) e.preventDefault();
-            if (e.keyCode === 123) e.preventDefault();
-        });
-
-        // كشف فتح أدوات المطور (F12)
-        setInterval(() => {
-            if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
-                document.body.innerHTML = "Security Triggered";
-                location.reload();
-            }
-        }, 500);
     </script>
 </body>
 </html>
