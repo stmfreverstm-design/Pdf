@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض مستند آمن</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.min.css">
+    <style>
+        body { font-family: sans-serif; background-color: #202124; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        #login-container, #error-container { text-align: center; background: #2d2e31; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 100; }
+        input[type="password"] { padding: 10px; font-size: 16px; border-radius: 4px; border: 1px solid #5f6368; background: #3c4043; color: white; width: 200px; margin-bottom: 15px; text-align: center; }
+        button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; background-color: #8ab4f8; color: #202124; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #aecbfa; }
+        #pdf-main-container { display: none; width: 100%; height: 100vh; flex-direction: column; }
+        #viewerContainer { flex: 1; overflow: auto; position: relative; background-color: #525659; }
+        #pdf-viewer { margin: 0 auto; }
+        /* حماية إضافية: منع التحديد وصياغة الطباعة */
+        #viewerContainer { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        @media print { body { display: none !important; } }
+        #loading { display: none; color: #8ab4f8; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-container">
+        <h2>أدخل رمز الوصول</h2>
+        <p>برجاء إدخال الرمز المكون من 3 أرقام للمتابعة.</p>
+        <input type="password" id="access-code" maxlength="3" placeholder="***">
+        <br>
+        <button onclick="checkCode()">دخول</button>
+        <div id="loading">جاري تحميل وتشفير الملف...</div>
+    </div>
+
+    <div id="error-container" style="display:none;">
+        <h2 style="color: #ea4335;">عذراً!</h2>
+        <p>الرمز الذي أدخلته غير صحيح.</p>
+        <button onclick="location.reload()">إعادة المحاولة</button>
+    </div>
+
+    <div id="pdf-main-container">
+        <div id="viewerContainer">
+            <div id="pdf-viewer" class="pdfViewer"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- الإعدادات ---
+        // رابط الملف الخام (Raw) من جيت هاب
+        const PDF_URL = 'https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/123.pdf';
+        // باسورد الموقع المطلوب من المستخدم
+        const SITE_PASSWORD = '123';
+        // باسورد الملف الـ PDF الحقيقي
+        const PDF_PASSWORD = '1234567891245248hgdtghnfrdvhb fzedg@#_25D';
+
+        // إعداد PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        const loginContainer = document.getElementById('login-container');
+        const errorContainer = document.getElementById('error-container');
+        const pdfMainContainer = document.getElementById('pdf-main-container');
+        const loadingDiv = document.getElementById('loading');
+
+        // منع القائمة اليمين (Right Click) على الموقع كله
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        function checkCode() {
+            const inputCode = document.getElementById('access-code').value;
+            if (inputCode === SITE_PASSWORD) {
+                loginContainer.style.display = 'none';
+                loadingDiv.style.display = 'block';
+                loadSecurePDF();
+            } else {
+                loginContainer.style.display = 'none';
+                errorContainer.style.display = 'block';
+            }
+        }
+
+        async function loadSecurePDF() {
+            try {
+                // 1. جلب الملف كـ ArrayBuffer (بيانات خام) لضمان عدم تحميله كملف عادي
+                const response = await fetch(PDF_URL);
+                if (!response.ok) throw new Error('فشل جلب الملف من جيت هاب');
+                const data = await response.arrayBuffer();
+
+                // 2. محاولة فتح الملف باستخدام الباسورد الطويل المخفي
+                const loadingTask = pdfjsLib.getDocument({
+                    data: data,
+                    password: PDF_PASSWORD // الباسورد الطويل يمرر هنا تلقائياً
+                });
+
+                const pdfDoc = await loadingTask.promise;
+                
+                // 3. عرض الملف
+                pdfMainContainer.style.display = 'flex';
+                loadingDiv.style.display = 'none';
+                renderPages(pdfDoc);
+
+            } catch (error) {
+                console.error(error);
+                alert('حدث خطأ أثناء فتح الملف. تأكد من إعدادات جيت هاب والباسورد.');
+                location.reload();
+            }
+        }
+
+        // دالة لعرض كافة الصفحات داخل الحاوي
+        async function renderPages(pdfDoc) {
+            const viewer = document.getElementById('pdf-viewer');
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+                
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                canvas.style.display = 'block';
+                canvas.style.marginBottom = '10px';
+
+                viewer.appendChild(canvas);
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                await page.render(renderContext).promise;
+            }
+        }
+    </script>
+</body>
+</html>
