@@ -9,14 +9,14 @@
         :root {
             --primary-gold: #c5a059;
             --dark-bg: #1a1a1a;
-            --card-bg: rgba(38, 38, 38, 0.9); /* جعل الخلفية شفافة قليلاً لتظهر الصورة */
+            --card-bg: rgba(38, 38, 38, 0.9);
             --text-color: #e0e0e0;
         }
 
         body {
             font-family: 'Amiri', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--dark-bg);
-            /* إضافة الصورة كخلفية أساسية */
+            /* الصورة الخلفية من رابط الـ Raw الخاص بك */
             background-image: url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg');
             background-size: cover;
             background-position: center;
@@ -31,12 +31,12 @@
             overflow-x: hidden;
         }
 
-        /* طبقة تعتيم خفيفة فوق الصورة عشان الكلام يظهر */
+        /* طبقة تعتيم لضمان وضوح النصوص */
         body::before {
             content: "";
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.65);
             z-index: -1;
         }
 
@@ -45,21 +45,22 @@
             padding: 30px;
             border-radius: 15px;
             border: 1px solid var(--primary-gold);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             text-align: center;
             width: 90%;
             max-width: 400px;
-            backdrop-filter: blur(5px); /* تأثير زجاجي خفيف */
+            backdrop-filter: blur(8px);
+            z-index: 10;
         }
 
-        h2 { color: var(--primary-gold); margin-bottom: 20px; font-size: 1.6rem; text-shadow: 1px 1px 2px black; }
+        h2 { color: var(--primary-gold); margin-bottom: 25px; font-size: 1.6rem; text-shadow: 1px 1px 3px black; }
 
         .input-group { margin-bottom: 15px; text-align: right; }
-        label { display: block; margin-bottom: 5px; color: var(--primary-gold); font-size: 0.85rem; font-weight: bold; }
+        label { display: block; margin-bottom: 5px; color: var(--primary-gold); font-size: 0.9rem; font-weight: bold; }
 
         input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             border: 1px solid #555;
             background: rgba(0, 0, 0, 0.7);
@@ -67,13 +68,14 @@
             box-sizing: border-box;
             font-size: 1rem;
             text-align: center;
+            transition: 0.3s;
         }
 
-        input:focus { outline: none; border-color: var(--primary-gold); box-shadow: 0 0 5px var(--primary-gold); }
+        input:focus { outline: none; border-color: var(--primary-gold); box-shadow: 0 0 8px var(--primary-gold); }
 
         button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background: var(--primary-gold);
             color: var(--dark-bg);
             border: none;
@@ -81,16 +83,18 @@
             font-weight: bold;
             font-size: 1.1rem;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 15px;
             transition: 0.3s;
         }
 
         button:hover { background: #e2bd76; transform: scale(1.02); }
 
+        #loading-screen { display: none; color: var(--primary-gold); margin-top: 20px; font-weight: bold; }
+
+        /* حاوي عرض الـ PDF */
         #pdf-main-container { display: none; width: 100%; height: 100vh; flex-direction: column; background: #1a1a1a; }
         #viewerContainer { flex: 1; overflow: auto; padding: 20px 0; user-select: none; }
-        canvas { display: block; margin: 0 auto 20px auto; box-shadow: 0 0 25px rgba(0,0,0,0.7); max-width: 95%; border: 1px solid #333; }
-        #loading-screen { display: none; color: var(--primary-gold); margin-top: 15px; font-weight: bold; }
+        canvas { display: block; margin: 0 auto 25px auto; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-width: 95%; background: white; }
 
         @media print { body { display: none !important; } }
     </style>
@@ -109,10 +113,10 @@
         </div>
         <div class="input-group">
             <label>كود التحقق الخاص:</label>
-            <input type="text" id="invite-code" placeholder="أدخل كود الوصول">
+            <input type="text" id="invite-code" placeholder="كود الوصول">
         </div>
         <button onclick="handleLogin()">فتح المصحف</button>
-        <div id="loading-screen">جاري تشفير البيانات وفتح المستند...</div>
+        <div id="loading-screen">جاري معالجة البيانات المؤمنة...</div>
     </div>
 
     <div id="pdf-main-container">
@@ -122,6 +126,7 @@
     </div>
 
     <script>
+        // 1. الإعدادات وقائمة المستخدمين
         const MASTER_INVITE_CODE = "2534gfsw26ft2r72t75e2e7#_"; 
         const USERS_LIST = [
             { name: "seif", pass: "123" },
@@ -132,7 +137,10 @@
         const PDF_URL = 'https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/123.pdf';
         const PDF_REAL_PASS = '1234567891245248hgdtghnfrdvhb fzedg@#_25D';
 
+        // إعدادات الخطوط العربية (CMaps) لحل مشكلة تكسر الحروف
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        const CMAP_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/cmaps/';
+        const CMAP_PACKED = true;
 
         window.onload = () => {
             if (localStorage.getItem('secureAccess') === 'granted') {
@@ -167,17 +175,24 @@
             try {
                 const response = await fetch(PDF_URL);
                 const data = await response.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument({ data: data, password: PDF_REAL_PASS });
+                
+                const loadingTask = pdfjsLib.getDocument({ 
+                    data: data, 
+                    password: PDF_REAL_PASS,
+                    cMapUrl: CMAP_URL, // استدعاء ملفات الخطوط
+                    cMapPacked: CMAP_PACKED
+                });
+
                 const pdfDoc = await loadingTask.promise;
                 
                 document.getElementById('pdf-main-container').style.display = 'flex';
-                // إخفاء صورة الخلفية عند عرض الـ PDF لزيادة التركيز
                 document.body.style.backgroundImage = "none";
                 document.body.style.backgroundColor = "#1a1a1a";
                 
                 renderPages(pdfDoc);
             } catch (error) {
-                alert("فشل التحقق من أمان الملف");
+                console.error(error);
+                alert("خطأ في الأمان أو فك تشفير الملف");
                 localStorage.removeItem('secureAccess');
                 location.reload();
             }
@@ -185,17 +200,35 @@
 
         async function renderPages(pdfDoc) {
             const viewer = document.getElementById('pdf-viewer');
+            viewer.innerHTML = ''; 
+
             for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
                 const page = await pdfDoc.getPage(pageNum);
-                const viewport = page.getViewport({ scale: 1.5 });
+                
+                // تحسين جودة العرض (Scale 2.0 لشاشات الموبايل)
+                const viewport = page.getViewport({ scale: 2.0 });
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
-                canvas.height = viewport.height; canvas.width = viewport.width;
+                
+                // ضبط بكسلات الكانفس لتكون حادة وواضحة (Sharp Rendering)
+                const pixelRatio = window.devicePixelRatio || 1;
+                canvas.height = viewport.height * pixelRatio;
+                canvas.width = viewport.width * pixelRatio;
+                canvas.style.width = "100%";
+                canvas.style.height = "auto";
+                
+                context.scale(pixelRatio, pixelRatio);
                 viewer.appendChild(canvas);
-                await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                await page.render({ 
+                    canvasContext: context, 
+                    viewport: viewport,
+                    intent: 'display'
+                }).promise;
             }
         }
 
+        // حماية إضافية ضد الكليك يمين
         document.addEventListener('contextmenu', e => e.preventDefault());
     </script>
 </body>
