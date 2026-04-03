@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - التسجيل والدخول</title>
+    <title>المصحف الشريف - حماية صارمة</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -21,9 +21,9 @@
         #login-screen::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.85); }
         
         .card {
-            position: relative; background: rgba(30,30,30,0.9); padding: 25px;
+            position: relative; background: rgba(30,30,30,0.95); padding: 25px;
             border-radius: 15px; border: 1px solid var(--gold); width: 350px; text-align: center;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px); box-shadow: 0 0 20px rgba(0,0,0,1);
         }
 
         .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 1px solid #444; }
@@ -32,14 +32,13 @@
 
         input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; text-align: center; outline: none; }
         button { width: 100%; padding: 14px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #1a1a1a; transition: 0.3s; margin-top: 10px; }
-        button:hover { background: #b08d4a; transform: scale(1.02); }
+        button:hover { background: #b08d4a; }
 
         #viewer-container { display: none; background: #222; min-height: 100vh; }
         #pdf-render-area { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
         canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 95%; }
         
-        .msg { font-size: 12px; color: #aaa; margin-top: 10px; line-height: 1.5; }
-        #loading-text { color: var(--gold); font-size: 14px; display: none; margin-top: 10px; }
+        #loading-text { color: var(--gold); font-size: 14px; display: none; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -55,11 +54,10 @@
                 <h3 id="form-title" style="color: var(--gold); margin: 0 0 15px 0;">تسجيل دخول</h3>
                 <input type="text" id="user" placeholder="اسم المستخدم">
                 <input type="password" id="pass" placeholder="كلمة المرور">
-                <input type="text" id="code" placeholder="كود التحقق">
+                <input type="text" id="code" placeholder="كود التحقق الخاص بك">
                 
                 <button id="main-btn" onclick="handleAuth()">دخول</button>
-                <div id="loading-text">جاري المعالجة...</div>
-                <p class="msg" id="helper-msg">أدخل بياناتك المسجلة مسبقاً</p>
+                <div id="loading-text">جاري التحقق...</div>
             </div>
         </div>
     </div>
@@ -91,9 +89,8 @@
             document.getElementById('tab-login').classList.toggle('active', mode === 'login');
             document.getElementById('tab-register').classList.toggle('active', mode === 'register');
             document.getElementById('form-title').innerText = mode === 'login' ? 'تسجيل دخول' : 'إنشاء حساب جديد';
-            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول' : 'إرسال الطلب وتسجيل';
+            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول' : 'إرسال الطلب';
             document.getElementById('code').style.display = mode === 'login' ? 'block' : 'none';
-            document.getElementById('helper-msg').innerText = mode === 'login' ? 'أدخل بياناتك المسجلة مسبقاً' : 'بعد التسجيل، ستحتاج للتواصل مع الإدارة لتفعيل حسابك بكود التحقق';
         }
 
         async function handleAuth() {
@@ -102,50 +99,52 @@
             const c = document.getElementById('code').value.trim();
             const loading = document.getElementById('loading-text');
 
-            if(!u || !p) return alert("يرجى ملء البيانات");
+            if(!u || !p) return alert("يرجى إدخال اليوزر والباسورد");
 
             loading.style.display = 'block';
 
             if (currentMode === 'register') {
-                // 1. إرسال لـ Discord
-                const msg = {
-                    content: `🆕 **طلب إنشاء حساب جديد**\n👤 الاسم: ${u}\n🔑 الباسورد: ${p}\n📱 وقت الطلب: ${new Date().toLocaleString()}`
-                };
-                
-                try {
-                    await fetch(DISCORD_WEBHOOK, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(msg)
-                    });
+                // حفظ البيانات في قاعدة البيانات لغرض التحقق اللاحق
+                await database.ref('users/' + u).set({ password: p, active: false });
 
-                    // 2. التوجيه للواتساب
-                    alert("تم إرسال بياناتك. سيتم تحويلك الآن للواتساب للحصول على كود التحقق الخاص بك.");
-                    const waMsg = encodeURIComponent(`مرحباً، لقد أنشأت حساباً باسم (${u}) وأريد كود التحقق الخاص بي.`);
-                    window.location.href = `https://wa.me/201277742850?text=${waMsg}`;
-                    
-                } catch (err) {
-                    alert("حدث خطأ في الإرسال");
-                }
+                // إرسال لـ Discord
+                const msg = { content: `🆕 **طلب تفعيل حساب**\n👤 اليوزر: ${u}\n🔑 الباسورد: ${p}` };
+                await fetch(DISCORD_WEBHOOK, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(msg) });
+
+                alert("تم إرسال الطلب. تواصل مع الإدارة لتفعيل حسابك وإعطائك الكود.");
+                window.location.href = `https://wa.me/201277742850?text=أريد تفعيل حسابي: ${u}`;
+                loading.style.display = 'none';
+
             } else {
-                // نظام الدخول وفحص البصمة (نفس المنطق السابق)
-                database.ref('sessions/' + u).once('value').then((snapshot) => {
-                    const token = btoa(navigator.userAgent + screen.width);
-                    const registeredToken = snapshot.val();
+                // عملية تسجيل الدخول الحقيقية
+                database.ref('users/' + u).once('value').then((snapshot) => {
+                    const userData = snapshot.val();
+                    const deviceToken = btoa(navigator.userAgent + screen.width);
 
-                    // التحقق من كود الأمان العام (الذي أعطيته لي)
-                    if (c !== "2534gfsw26ft2r72t75e2e7#_") {
-                        alert("كود التحقق غير صحيح");
-                        loading.style.display = 'none';
-                        return;
+                    // 1. هل المستخدم موجود أصلاً؟
+                    if (!userData) {
+                        alert("اسم المستخدم غير موجود");
+                    } 
+                    // 2. هل الباسورد صح؟
+                    else if (userData.password !== p) {
+                        alert("كلمة المرور خاطئة ❌");
                     }
-
-                    if (!registeredToken || registeredToken === token) {
-                        database.ref('sessions/' + u).set(token);
-                        localStorage.setItem('isLoggedIn', 'true');
-                        loadSecurePDF();
-                    } else {
-                        alert("هذا الحساب مسجل على جهاز آخر!");
+                    // 3. هل كود التحقق صح؟ (الكود العام اللي حددته أنت)
+                    else if (c !== "2534gfsw26ft2r72t75e2e7#_") {
+                        alert("كود التحقق غير صحيح");
+                    }
+                    else {
+                        // 4. فحص الجهاز (بصمة الجهاز)
+                        database.ref('sessions/' + u).once('value').then((sessSnap) => {
+                            const registeredToken = sessSnap.val();
+                            if (!registeredToken || registeredToken === deviceToken) {
+                                database.ref('sessions/' + u).set(deviceToken);
+                                localStorage.setItem('isLoggedIn', 'true');
+                                loadSecurePDF();
+                            } else {
+                                alert("هذا الحساب يعمل على جهاز آخر حالياً!");
+                            }
+                        });
                     }
                     loading.style.display = 'none';
                 });
@@ -156,7 +155,6 @@
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('viewer-container').style.display = 'block';
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-            
             const pdf = await pdfjsLib.getDocument(PDF_URL).promise;
             const container = document.getElementById('pdf-render-area');
             for (let i = 1; i <= pdf.numPages; i++) {
