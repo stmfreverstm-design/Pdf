@@ -103,7 +103,7 @@
                 } else {
                     db.ref('users/' + uv).once('value').then(s => {
                         const d = s.val();
-                        if (d && d.p === pv && cv === "2534gfsw26ft2r72t75e2e7#_") {
+                        if (d && d.p === pv && cv === "123456789") {
                             const tk = gt();
                             db.ref('sessions/' + uv).once('value').then(ss => {
                                 if (!ss.val() || ss.val() === tk) {
