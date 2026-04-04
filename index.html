@@ -15,7 +15,7 @@
         .tabs { display: flex; justify-content: center; margin-bottom: 30px; gap: 15px; }
         .tab { padding: 8px 20px; cursor: pointer; color: #777; transition: 0.3s; border-radius: 50px; background: rgba(255,255,255,0.05); }
         .tab.active { color: #000; background: var(--gold); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
-        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; text-align: center; outline: none; transition: 0.3s; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; text-align: center; outline: none; transition: 0.3s; user-select: text !important; }
         input:focus { border-color: var(--gold); transform: scale(1.02); }
         button { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 12px; color: #000; margin-top: 20px; transition: 0.4s; overflow: hidden; position: relative; }
         button:hover { transform: scale(1.03); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4); }
@@ -33,10 +33,10 @@
                 <div id="t2" class="tab" onclick="s('reg')">جديد</div>
             </div>
             <h2 id="title" style="color: var(--gold); margin-bottom: 25px;">اقرأ وارتقِ</h2>
-            <input type="text" id="u" placeholder="اليوزر">
-            <input type="password" id="p" placeholder="الباسورد">
-            <input type="number" id="a" placeholder="السن" style="display:none;">
-            <input type="text" id="c" placeholder="الكود">
+            <input type="text" id="u" placeholder="اليوزر" oncontextmenu="event.stopPropagation()">
+            <input type="password" id="p" placeholder="الباسورد" oncontextmenu="event.stopPropagation()">
+            <input type="number" id="a" placeholder="السن" style="display:none;" oncontextmenu="event.stopPropagation()">
+            <input type="text" id="c" placeholder="الكود" oncontextmenu="event.stopPropagation()">
             <button onclick="h()"><span id="bt">دخول</span></button>
             <div id="ld" style="display:none; color:var(--gold); margin-top:15px;">جاري التحقق...</div>
         </div>
@@ -133,8 +133,11 @@
             }
         })();
 
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        window.addEventListener('keydown', e => { if (e.ctrlKey || e.keyCode === 123) e.preventDefault(); });
+        window.addEventListener('keydown', e => {
+            const isInput = e.target.tagName === 'INPUT';
+            if (isInput && (e.ctrlKey || e.metaKey)) return;
+            if (e.ctrlKey || e.keyCode === 123) e.preventDefault();
+        });
     </script>
 </body>
 </html>
