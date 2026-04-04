@@ -2,7 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>اقرأ وارتقِ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -10,134 +9,135 @@
     <style>
         :root { --gold: #d4af37; --bg: #050505; }
         body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; font-family: 'Segoe UI', sans-serif; color: white; height: 100%; }
-        #login-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg'); background-size: cover; background-position: center; perspective: 1000px; }
-        .card { background: rgba(15, 15, 15, 0.8); padding: 40px; border-radius: 24px; border: 1px solid rgba(212, 175, 55, 0.2); width: 380px; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 25px 50px rgba(0,0,0,0.8); animation: f 0.8s ease-out; }
-        .tabs { display: flex; justify-content: center; margin-bottom: 30px; gap: 15px; }
+        #login-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg'); background-size: cover; background-position: center; }
+        .card { background: rgba(15, 15, 15, 0.85); padding: 40px; border-radius: 24px; border: 1px solid rgba(212, 175, 55, 0.2); width: 380px; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
+        .tabs { display: flex; justify-content: center; margin-bottom: 25px; gap: 10px; }
         .tab { padding: 8px 20px; cursor: pointer; color: #777; transition: 0.3s; border-radius: 50px; background: rgba(255,255,255,0.05); }
-        .tab.active { color: #000; background: var(--gold); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
-        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; text-align: center; outline: none; transition: 0.3s; user-select: text !important; }
-        input:focus { border-color: var(--gold); transform: scale(1.02); }
-        button { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 12px; color: #000; margin-top: 20px; transition: 0.4s; overflow: hidden; position: relative; }
-        button:hover { transform: scale(1.03); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4); }
-        #viewer-container { display: none; background: #0f0f0f; min-height: 100vh; }
-        #pdf-render-area { display: flex; flex-direction: column; align-items: center; padding: 40px 0; gap: 30px; }
-        canvas { box-shadow: 0 20px 60px rgba(0,0,0,0.9); max-width: 90%; border-radius: 4px; }
-        @keyframes f { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .tab.active { color: #000; background: var(--gold); }
+        input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; text-align: center; outline: none; user-select: text !important; }
+        button { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 12px; color: #000; margin-top: 15px; }
+        #viewer-container { display: none; background: #0f0f0f; }
+        canvas { box-shadow: 0 20px 60px rgba(0,0,0,0.9); max-width: 90%; margin: 20px auto; display: block; }
+        #loading-init { position: fixed; inset: 0; background: #050505; display: flex; align-items: center; justify-content: center; z-index: 9999; color: var(--gold); font-size: 1.2rem; }
     </style>
 </head>
 <body oncontextmenu="return false;">
-    <div id="login-screen">
+
+    <div id="loading-init">جاري التحميل...</div>
+
+    <div id="login-screen" style="display: none;">
         <div class="card">
             <div class="tabs">
                 <div id="t1" class="tab active" onclick="s('login')">دخول</div>
                 <div id="t2" class="tab" onclick="s('reg')">جديد</div>
             </div>
-            <h2 id="title" style="color: var(--gold); margin-bottom: 25px;">اقرأ وارتقِ</h2>
+            <h2 id="title" style="color: var(--gold);">اقرأ وارتقِ</h2>
             <input type="text" id="u" placeholder="اليوزر" oncontextmenu="event.stopPropagation()">
             <input type="password" id="p" placeholder="الباسورد" oncontextmenu="event.stopPropagation()">
             <input type="number" id="a" placeholder="السن" style="display:none;" oncontextmenu="event.stopPropagation()">
-            <input type="text" id="c" placeholder="الكود" oncontextmenu="event.stopPropagation()">
+            <input type="text" id="c" placeholder="كود التفعيل" oncontextmenu="event.stopPropagation()">
             <button onclick="h()"><span id="bt">دخول</span></button>
-            <div id="ld" style="display:none; color:var(--gold); margin-top:15px;">جاري التحقق...</div>
         </div>
     </div>
-    <div id="viewer-container"><div id="pdf-render-area"></div></div>
+
+    <div id="viewer-container"><div id="pdf-area"></div></div>
 
     <script>
         (function() {
-            const _0x5a = {
+            const _0x = {
                 k: "QUl6YVN5Qkp3a2JmZEJiMllwMWlncTZTbmhDaXZLV2c1NG0tY093",
                 d: "aHR0cHM6Ly9wZGYxLTg1ODQ1LWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbQ==",
-                p: "cGRmMS04NTg0NQ==",
                 w: "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQ4MTkyMzYyODE4MTM2MDY5Mi9Pdjc1dEticnRSQzZIZTBVbkVGSEhEaVJoSU5mRjZlU3A1aFJ2MG1UcENFOGhraEg4MzNMeVRoWGRkYk50bUZsQTJS",
                 l: "aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3N0bWZyZXZlcnN0bS1kZXNpZ24vUGRmL21haW4vMTIzLnBkZg=="
             };
-
-            const _dec = (v) => atob(v);
-            
-            firebase.initializeApp({
-                apiKey: _dec(_0x5a.k),
-                databaseURL: _dec(_0x5a.d),
-                projectId: _dec(_0x5a.p)
-            });
-
+            const _dec = v => atob(v);
+            firebase.initializeApp({ apiKey: _dec(_0x.k), databaseURL: _dec(_0x.d) });
             const db = firebase.database();
             let m = 'login';
 
-            window.s = function(x) {
-                m = x;
-                document.getElementById('t1').className = x === 'login' ? 'tab active' : 'tab';
-                document.getElementById('t2').className = x === 'reg' ? 'tab active' : 'tab';
-                document.getElementById('bt').innerText = x === 'login' ? 'دخول' : 'إرسال';
-                document.getElementById('a').style.display = x === 'reg' ? 'block' : 'none';
-                document.getElementById('c').style.display = x === 'login' ? 'block' : 'none';
-            };
+            const gt = () => btoa([navigator.userAgent, screen.width].join('|'));
 
-            const gt = () => btoa([navigator.userAgent, screen.width, navigator.language].join('|'));
-
-            window.onload = () => {
+            // دالة التحقق من الجلسة المحفوظة عند فتح الصفحة
+            window.onload = async function() {
                 const su = localStorage.getItem('_u'), st = localStorage.getItem('_t');
                 if (su && st) {
-                    db.ref('sessions/' + su).once('value').then(s => {
-                        if (s.val() === st) v();
-                    });
+                    const snap = await db.ref('users/' + su + '/token').once('value');
+                    if (snap.val() === st) {
+                        await v(); // توجيه مباشر للـ PDF
+                    } else {
+                        showLogin();
+                    }
+                } else {
+                    showLogin();
                 }
+                document.getElementById('loading-init').style.display = 'none';
+            };
+
+            function showLogin() {
+                document.getElementById('login-screen').style.display = 'flex';
+            }
+
+            window.s = function(mode) {
+                m = mode;
+                document.getElementById('t1').className = mode === 'login' ? 'tab active' : 'tab';
+                document.getElementById('t2').className = mode === 'reg' ? 'tab active' : 'tab';
+                document.getElementById('bt').innerText = mode === 'login' ? 'دخول' : 'إرسال الطلب';
+                document.getElementById('a').style.display = mode === 'reg' ? 'block' : 'none';
+                document.getElementById('c').style.display = mode === 'login' ? 'block' : 'none';
             };
 
             window.h = async function() {
                 const uv = document.getElementById('u').value.trim().toLowerCase();
                 const pv = document.getElementById('p').value;
                 const av = document.getElementById('a').value;
-                const cv = document.getElementById('c').value;
-                if (!uv || !pv) return;
+                const cv = document.getElementById('c').value.trim();
+                const tk = gt();
 
                 if (m === 'reg') {
+                    if(!uv || !pv || !av) return alert("أكمل البيانات");
                     await db.ref('users/' + uv).set({ p: pv, a: av });
-                    fetch(_dec(_0x5a.w), {
+                    fetch(_dec(_0x.w), {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content: `🆕 User: ${uv} | Pass: ${pv} | Age: ${av}` })
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ content: `🆕 طلب تفعيل: ${uv} | باس: ${pv} | سن: ${av}` })
                     });
-                    alert("تم الإرسال للتفعيل");
+                    alert("تم إرسال بياناتك.. تواصل لتفعيل الكود");
                     window.location.href = `https://wa.me/201277742850?text=تفعيل:${uv}`;
                 } else {
-                    db.ref('users/' + uv).once('value').then(s => {
-                        const d = s.val();
-                        if (d && d.p === pv && cv === "123456789") {
-                            const tk = gt();
-                            db.ref('sessions/' + uv).once('value').then(ss => {
-                                if (!ss.val() || ss.val() === tk) {
-                                    db.ref('sessions/' + uv).set(tk);
-                                    localStorage.setItem('_u', uv);
-                                    localStorage.setItem('_t', tk);
-                                    v();
-                                } else { alert("مسجل مسبقاً"); }
-                            });
-                        } else { alert("بيانات خاطئة"); }
-                    });
+                    if(!uv || !pv || !cv) return alert("أدخل اليوزر والباسورد والكود");
+                    const cSnap = await db.ref('codes/' + cv).once('value');
+                    if(!cSnap.exists() || cSnap.val().used) return alert("كود غير صالح");
+
+                    const uSnap = await db.ref('users/' + uv).once('value');
+                    const uData = uSnap.val();
+
+                    if(uData && uData.p === pv) {
+                        if(!uData.token || uData.token === tk) {
+                            await db.ref('users/' + uv).update({ token: tk });
+                            await db.ref('codes/' + cv).update({ used: true, by: uv });
+                            localStorage.setItem('_u', uv); 
+                            localStorage.setItem('_t', tk);
+                            await v();
+                        } else { alert("الحساب مسجل على جهاز آخر"); }
+                    } else { alert("بيانات خاطئة"); }
                 }
             };
 
             async function v() {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('viewer-container').style.display = 'block';
-                const p = await pdfjsLib.getDocument(_dec(_0x5a.l)).promise;
-                for (let i = 1; i <= p.numPages; i++) {
-                    const pg = await p.getPage(i);
-                    const c = document.createElement('canvas');
-                    const vt = pg.getViewport({ scale: 1.5 });
-                    c.height = vt.height; c.width = vt.width;
-                    await pg.render({ canvasContext: c.getContext('2d'), viewport: vt }).promise;
-                    document.getElementById('pdf-render-area').appendChild(c);
+                const pdf = await pdfjsLib.getDocument(_dec(_0x.l)).promise;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const canv = document.createElement('canvas');
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    canv.height = viewport.height; canv.width = viewport.width;
+                    await page.render({ canvasContext: canv.getContext('2d'), viewport: viewport }).promise;
+                    document.getElementById('pdf-area').appendChild(canv);
                 }
             }
         })();
-
-        window.addEventListener('keydown', e => {
-            const isInput = e.target.tagName === 'INPUT';
-            if (isInput && (e.ctrlKey || e.metaKey)) return;
-            if (e.ctrlKey || e.keyCode === 123) e.preventDefault();
-        });
+        window.addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && (e.ctrlKey || e.keyCode === 123)) e.preventDefault(); });
     </script>
 </body>
 </html>
