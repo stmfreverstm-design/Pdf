@@ -53,6 +53,10 @@
                 l: "aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3N0bWZyZXZlcnN0bS1kZXNpZ24vUGRmL21haW4vMTIzLnBkZg=="
             };
             const _dec = v => atob(v);
+            
+            // ضبط المسار لتحميل الخطوط بشكل صحيح
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
             firebase.initializeApp({ apiKey: _dec(_0x.k), databaseURL: _dec(_0x.d) });
             const db = firebase.database();
             let m = 'login';
@@ -111,7 +115,16 @@
             async function v() {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('viewer-container').style.display = 'block';
-                const pdf = await pdfjsLib.getDocument(_dec(_0x.l)).promise;
+                
+                // إضافة إعدادات الـ CMap لضمان عدم ظهور الكلام بايظ
+                const loadingTask = pdfjsLib.getDocument({
+                    url: _dec(_0x.l),
+                    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+                    cMapPacked: true,
+                    disableFontFace: true // هذا السطر يحل أغلب مشاكل الكلام البايظ في المتصفحات
+                });
+
+                const pdf = await loadingTask.promise;
                 const container = document.getElementById('pdf-area');
 
                 for (let i = 1; i <= pdf.numPages; i++) {
@@ -122,7 +135,7 @@
                     const obs = new IntersectionObserver(async (entries) => {
                         if (entries[0].isIntersecting && slot.innerHTML === "") {
                             const page = await pdf.getPage(i);
-                            const vp = page.getViewport({ scale: 1.2 });
+                            const vp = page.getViewport({ scale: 1.5 }); // رفعنا الجودة قليلاً
                             const canv = document.createElement('canvas');
                             const ctx = canv.getContext('2d');
                             canv.height = vp.height; canv.width = vp.width;
