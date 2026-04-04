@@ -3,26 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المصحف الشريف - نظام الحماية</title>
+    <title>المصحف الشريف - دخول آمن</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
     <style>
-        :root { --gold: #c5a059; --bg: #1a1a1a; }
-        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; font-family: 'Segoe UI', Tahoma, sans-serif; color: white; }
-        #login-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: #000; position: relative; }
-        .card { position: relative; background: #222; padding: 25px; border-radius: 15px; border: 1px solid var(--gold); width: 350px; text-align: center; box-shadow: 0 0 25px rgba(197, 160, 89, 0.2); }
-        .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; }
-        .tab { padding: 10px; cursor: pointer; color: #888; width: 50%; border-bottom: 1px solid #444; transition: 0.3s; }
+        :root { --gold: #c5a059; --bg: #0a0a0a; --card-bg: rgba(20, 20, 20, 0.85); }
+        body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; height: 100%; }
+        
+        /* شاشة تسجيل الدخول مع الصورة الخلفية الجديدة */
+        #login-screen {
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            /* استبدال الخلفية بالصورة المطلوبة مباشرة */
+            background-image: url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg');
+            background-size: cover; background-position: center; position: relative;
+        }
+        
+        /* طبقة حماية داكنة فوق الصورة لزيادة وضوح النص */
+        #login-screen::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); }
+        
+        /* بطاقة تسجيل الدخول مع تأثير الضبابية (Blur) */
+        .card {
+            position: relative; background: var(--card-bg); padding: 30px;
+            border-radius: 20px; border: 1px solid rgba(197, 160, 89, 0.3); width: 360px; text-align: center;
+            backdrop-filter: blur(10px); /* تأثير الضبابية الخلفي */
+            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+        }
+
+        .tabs { display: flex; justify-content: space-around; margin-bottom: 25px; border-bottom: 1px solid #333; }
+        .tab { padding: 12px; cursor: pointer; color: #aaa; width: 50%; border-bottom: 2px solid transparent; transition: 0.3s; font-size: 15px; }
         .tab.active { color: var(--gold); border-bottom: 2px solid var(--gold); font-weight: bold; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; text-align: center; outline: none; }
-        button { width: 100%; padding: 14px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #1a1a1a; margin-top: 10px; transition: 0.3s; }
-        #viewer-container { display: none; background: #222; min-height: 100vh; }
-        #pdf-render-area { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
-        canvas { margin-bottom: 25px; box-shadow: 0 0 30px rgba(0,0,0,0.7); max-width: 95%; }
-        #loading-text { color: var(--gold); font-size: 14px; display: none; margin-top: 10px; font-weight: bold; }
+
+        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: rgba(0, 0, 0, 0.5); color: #fff; box-sizing: border-box; text-align: center; outline: none; transition: 0.3s; font-size: 15px; }
+        input:focus { border-color: var(--gold); background: rgba(0, 0, 0, 0.8); }
+        
+        button { width: 100%; padding: 15px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 8px; color: #1a1a1a; margin-top: 15px; transition: 0.3s; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { background: #b08d4a; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(197, 160, 89, 0.3); }
+
+        #viewer-container { display: none; background: #111; min-height: 100vh; position: relative; }
+        #pdf-render-area { display: flex; flex-direction: column; align-items: center; padding: 30px 0; }
+        canvas { margin-bottom: 30px; box-shadow: 0 0 40px rgba(0,0,0,0.8); max-width: 95%; border: 1px solid #222; }
+        
+        #loading-text { color: var(--gold); font-size: 14px; display: none; margin-top: 15px; font-weight: bold; animation: pulse 1.5s infinite; }
+        
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        @media print { body { display: none !important; } }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -34,15 +61,13 @@
                 <div id="tab-register" class="tab" onclick="switchTab('register')">إنشاء حساب</div>
             </div>
             <div id="form-container">
-                <h3 id="form-title" style="color: var(--gold);">تسجيل دخول</h3>
-                <input type="text" id="user" placeholder="اسم المستخدم">
-                <input type="password" id="pass" placeholder="كلمة المرور">
-                
-                <input type="number" id="age" placeholder="السن" style="display:none;">
-                <input type="text" id="code" placeholder="كود التحقق">
-                
-                <button id="main-btn" onclick="handleAuth()">دخول</button>
-                <div id="loading-text">جاري المعالجة...</div>
+                <h3 id="form-title" style="color: var(--gold); margin: 0 0 20px 0; font-weight: 300; letter-spacing: 1px;">تسجيل دخول</h3>
+                <input type="text" id="user" placeholder="اسم المستخدم" autocomplete="off">
+                <input type="password" id="pass" placeholder="كلمة المرور" autocomplete="off">
+                <input type="number" id="age" placeholder="السن (العمر)" style="display:none;" autocomplete="off">
+                <input type="text" id="code" placeholder="كود التحقق الخاص بك" autocomplete="off">
+                <button id="main-btn" onclick="handleAuth()">دخول آمن</button>
+                <div id="loading-text">جاري التحقق...</div>
             </div>
         </div>
     </div>
@@ -70,13 +95,31 @@
             return btoa([navigator.userAgent, screen.width, screen.height, navigator.language].join('|'));
         }
 
+        window.onload = function() {
+            const savedUser = localStorage.getItem('auto_user');
+            const savedToken = localStorage.getItem('auto_token');
+
+            if (savedUser && savedToken) {
+                document.getElementById('loading-text').style.display = 'block';
+                document.getElementById('loading-text').innerText = "جاري الدخول التلقائي...";
+                
+                database.ref('sessions/' + savedUser).once('value').then((snap) => {
+                    if (snap.val() === savedToken) {
+                        loadSecurePDF();
+                    } else {
+                        localStorage.clear();
+                        document.getElementById('loading-text').style.display = 'none';
+                    }
+                });
+            }
+        };
+
         function switchTab(mode) {
             currentMode = mode;
             document.getElementById('tab-login').classList.toggle('active', mode === 'login');
             document.getElementById('tab-register').classList.toggle('active', mode === 'register');
             document.getElementById('form-title').innerText = mode === 'login' ? 'تسجيل دخول' : 'إنشاء حساب جديد';
-            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول' : 'تسجيل وإرسال';
-            
+            document.getElementById('main-btn').innerText = mode === 'login' ? 'دخول آمن' : 'تسجيل وإرسال للواتساب';
             document.getElementById('age').style.display = mode === 'register' ? 'block' : 'none';
             document.getElementById('code').style.display = mode === 'login' ? 'block' : 'none';
         }
@@ -88,43 +131,36 @@
             const c = document.getElementById('code').value.trim();
             const loading = document.getElementById('loading-text');
 
-            if(!u || !p || (currentMode === 'register' && !age)) return alert("يرجى إكمال البيانات");
+            if(!u || !p || (currentMode === 'register' && !age)) return alert("يرجى إكمال جميع الحقول المطلوب");
             loading.style.display = 'block';
 
             if (currentMode === 'register') {
                 await database.ref('users/' + u).set({ password: p, age: age });
-                
                 fetch(DISCORD_WEBHOOK, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        content: `🆕 **حساب جديد**\n👤 الاسم: ${u}\n🔑 الباسورد: ${p}\n🎂 السن: ${age}` 
-                    })
+                    body: JSON.stringify({ content: `🆕 **حساب جديد مكتمل**\n👤 الاسم: ${u}\n🔑 الباسورد: ${p}\n🎂 السن: ${age}` })
                 });
-
-                alert("تم تسجيل الحساب! تواصل مع الإدارة للتفعيل.");
-                window.location.href = `https://wa.me/201277742850?text=تفعيل حسابي:\nاليوزر: ${u}\nالسن: ${age}`;
+                alert("تم تسجيل الحساب! تواصل مع الإدارة الآن لتفعيله.");
+                window.location.href = `https://wa.me/201277742850?text=أريد تفعيل حسابي:\nاليوزر: ${u}\nالسن: ${age}`;
                 loading.style.display = 'none';
             } else {
                 database.ref('users/' + u).once('value').then((snap) => {
                     const data = snap.val();
-                    if(!data) {
-                        alert("اليوزر غير موجود.");
-                        loading.style.display = 'none';
-                    } else if (data.password !== p) {
-                        alert("الباسورد خطأ!");
-                        loading.style.display = 'none';
-                    } else if (c !== "2534gfsw26ft2r72t75e2e7#_") {
-                        alert("كود التحقق خطأ.");
-                        loading.style.display = 'none';
-                    } else {
+                    if(!data) { alert("اليوزر غير موجود، قم بإنشاء حساب أولاً."); loading.style.display = 'none'; }
+                    else if (data.password !== p) { alert("كلمة المرور غير صحيحة! ❌"); loading.style.display = 'none'; }
+                    else if (c !== "2534gfsw26ft2r72t75e2e7#_") { alert("كود التحقق غير صحيح."); loading.style.display = 'none'; }
+                    else {
                         const token = getStrictToken();
                         database.ref('sessions/' + u).once('value').then((sess) => {
                             if (!sess.val() || sess.val() === token) {
-                                database.ref('sessions/' + u).set(token);
-                                loadSecurePDF();
+                                database.ref('sessions/' + u).set(token).then(() => {
+                                    localStorage.setItem('auto_user', u);
+                                    localStorage.setItem('auto_token', token);
+                                    loadSecurePDF();
+                                });
                             } else {
-                                alert("الحساب مسجل على جهاز آخر!");
+                                alert("عذراً، هذا الحساب مفتوح على جهاز آخر!");
                                 loading.style.display = 'none';
                             }
                         });
@@ -147,6 +183,13 @@
                 area.appendChild(canv);
             }
         }
+
+        // منع الحركات غير المصرح بها
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        window.addEventListener('keydown', e => {
+            if (e.ctrlKey && ['s','p','u','i','j','c'].includes(e.key.toLowerCase())) e.preventDefault();
+            if (e.keyCode === 123) e.preventDefault();
+        });
     </script>
 </body>
 </html>
