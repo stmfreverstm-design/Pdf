@@ -57,13 +57,13 @@
 
             const gt = () => btoa([navigator.userAgent, screen.width].join('|'));
 
-            // دالة التحقق من الجلسة المحفوظة عند فتح الصفحة
+    
             window.onload = async function() {
                 const su = localStorage.getItem('_u'), st = localStorage.getItem('_t');
                 if (su && st) {
                     const snap = await db.ref('users/' + su + '/token').once('value');
                     if (snap.val() === st) {
-                        await v(); // توجيه مباشر للـ PDF
+                        await v(); 
                     } else {
                         showLogin();
                     }
