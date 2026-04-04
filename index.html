@@ -16,8 +16,10 @@
         .tab.active { color: #000; background: var(--gold); }
         input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; text-align: center; outline: none; user-select: text !important; }
         button { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 12px; color: #000; margin-top: 15px; }
-        #viewer-container { display: none; background: #0f0f0f; }
-        canvas { box-shadow: 0 20px 60px rgba(0,0,0,0.9); max-width: 90%; margin: 20px auto; display: block; }
+        #viewer-container { display: none; background: #0f0f0f; min-height: 100vh; }
+        #pdf-area { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+        .page-slot { width: 95%; max-width: 800px; min-height: 400px; margin-bottom: 25px; display: flex; justify-content: center; align-items: center; }
+        canvas { box-shadow: 0 15px 40px rgba(0,0,0,0.8); max-width: 100%; height: auto !important; border-radius: 4px; }
         #loading-init { position: fixed; inset: 0; background: #050505; display: flex; align-items: center; justify-content: center; z-index: 9999; color: var(--gold); font-size: 1.2rem; }
     </style>
 </head>
@@ -54,28 +56,18 @@
             firebase.initializeApp({ apiKey: _dec(_0x.k), databaseURL: _dec(_0x.d) });
             const db = firebase.database();
             let m = 'login';
-
             const gt = () => btoa([navigator.userAgent, screen.width].join('|'));
 
-    
             window.onload = async function() {
                 const su = localStorage.getItem('_u'), st = localStorage.getItem('_t');
                 if (su && st) {
                     const snap = await db.ref('users/' + su + '/token').once('value');
-                    if (snap.val() === st) {
-                        await v(); 
-                    } else {
-                        showLogin();
-                    }
-                } else {
-                    showLogin();
-                }
+                    if (snap.val() === st) { await v(); } else { showLogin(); }
+                } else { showLogin(); }
                 document.getElementById('loading-init').style.display = 'none';
             };
 
-            function showLogin() {
-                document.getElementById('login-screen').style.display = 'flex';
-            }
+            function showLogin() { document.getElementById('login-screen').style.display = 'flex'; }
 
             window.s = function(mode) {
                 m = mode;
@@ -87,38 +79,31 @@
             };
 
             window.h = async function() {
-                const uv = document.getElementById('u').value.trim().toLowerCase();
-                const pv = document.getElementById('p').value;
-                const av = document.getElementById('a').value;
-                const cv = document.getElementById('c').value.trim();
-                const tk = gt();
+                const uv = document.getElementById('u').value.trim().toLowerCase(),
+                      pv = document.getElementById('p').value,
+                      av = document.getElementById('a').value,
+                      cv = document.getElementById('c').value.trim(),
+                      tk = gt();
 
                 if (m === 'reg') {
                     if(!uv || !pv || !av) return alert("أكمل البيانات");
                     await db.ref('users/' + uv).set({ p: pv, a: av });
-                    fetch(_dec(_0x.w), {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ content: `🆕 طلب تفعيل: ${uv} | باس: ${pv} | سن: ${av}` })
-                    });
+                    fetch(_dec(_0x.w), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ content: `🆕 طلب تفعيل: ${uv} | باس: ${pv} | سن: ${av}` }) });
                     alert("تم إرسال بياناتك.. تواصل لتفعيل الكود");
                     window.location.href = `https://wa.me/201277742850?text=تفعيل:${uv}`;
                 } else {
-                    if(!uv || !pv || !cv) return alert("أدخل اليوزر والباسورد والكود");
+                    if(!uv || !pv || !cv) return alert("أدخل البيانات كاملة");
                     const cSnap = await db.ref('codes/' + cv).once('value');
                     if(!cSnap.exists() || cSnap.val().used) return alert("كود غير صالح");
-
                     const uSnap = await db.ref('users/' + uv).once('value');
                     const uData = uSnap.val();
-
                     if(uData && uData.p === pv) {
                         if(!uData.token || uData.token === tk) {
                             await db.ref('users/' + uv).update({ token: tk });
                             await db.ref('codes/' + cv).update({ used: true, by: uv });
-                            localStorage.setItem('_u', uv); 
-                            localStorage.setItem('_t', tk);
+                            localStorage.setItem('_u', uv); localStorage.setItem('_t', tk);
                             await v();
-                        } else { alert("الحساب مسجل على جهاز آخر"); }
+                        } else { alert("مسجل بجهاز آخر"); }
                     } else { alert("بيانات خاطئة"); }
                 }
             };
@@ -127,13 +112,25 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('viewer-container').style.display = 'block';
                 const pdf = await pdfjsLib.getDocument(_dec(_0x.l)).promise;
+                const container = document.getElementById('pdf-area');
+
                 for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const canv = document.createElement('canvas');
-                    const viewport = page.getViewport({ scale: 1.5 });
-                    canv.height = viewport.height; canv.width = viewport.width;
-                    await page.render({ canvasContext: canv.getContext('2d'), viewport: viewport }).promise;
-                    document.getElementById('pdf-area').appendChild(canv);
+                    const slot = document.createElement('div');
+                    slot.className = 'page-slot';
+                    container.appendChild(slot);
+
+                    const obs = new IntersectionObserver(async (entries) => {
+                        if (entries[0].isIntersecting && slot.innerHTML === "") {
+                            const page = await pdf.getPage(i);
+                            const vp = page.getViewport({ scale: 1.2 });
+                            const canv = document.createElement('canvas');
+                            const ctx = canv.getContext('2d');
+                            canv.height = vp.height; canv.width = vp.width;
+                            slot.appendChild(canv);
+                            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                        }
+                    }, { threshold: 0.1 });
+                    obs.observe(slot);
                 }
             }
         })();
