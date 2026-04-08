@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>اقرأ وارتقِ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -9,13 +10,73 @@
     <style>
         :root { --gold: #d4af37; --bg: #050505; }
         body, html { margin: 0; padding: 0; background: var(--bg); overflow-x: hidden; user-select: none; font-family: 'Segoe UI', sans-serif; color: white; height: 100%; }
-        #login-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg'); background-size: cover; background-position: center; }
-        .card { background: rgba(15, 15, 15, 0.85); padding: 40px; border-radius: 24px; border: 1px solid rgba(212, 175, 55, 0.2); width: 380px; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
+        
+        /* شاشة الدخول - الخلفية */
+        #login-screen { 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://raw.githubusercontent.com/stmfreverstm-design/Pdf/main/raergeragrtgt.jpg'); 
+            background-size: cover; 
+            background-position: center; 
+            transition: all 0.3s ease; /* تأثير ناعم عند التغير */
+        }
+        
+        /* التصميم الأساسي للكارت (للكومبيوتر والتابلت الكبير) */
+        .card { 
+            background: rgba(15, 15, 15, 0.85); 
+            padding: 40px; 
+            border-radius: 24px; 
+            border: 1px solid rgba(212, 175, 55, 0.2); 
+            width: 380px; 
+            text-align: center; 
+            backdrop-filter: blur(20px); 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8); 
+            transition: all 0.3s ease; /* تأثير ناعم عند التغير */
+        }
+
+        /* 📱 تعديلات خاصة بالهاتف (عندما يكون عرض الشاشة أقل من 480px) 📱 */
+        @media (max-width: 480px) {
+            #login-screen {
+                padding: 10px; /* تقليل الهوامش الخارجية */
+            }
+            .card {
+                width: 100%; /* الكارت يأخذ عرض الشاشة بالكامل */
+                max-width: 100%; /* إلغاء الحد الأقصى للعرض القديم */
+                height: auto;
+                padding: 30px 20px; /* تقليل البادنج الداخلي قليلاً */
+                border-radius: 15px; /* تنعيم الحواف لتناسب الموبايل */
+                /* جعل العناصر تبدو "أقرب" و أوضح */
+                transform: scale(1.02); /* تكبير بسيط جداً للكارت لإعطاء إحساس بالقرب */
+            }
+            
+            /* تكبير المدخلات والنصوص قليلاً لسهولة الاستخدام على الموبايل */
+            input {
+                font-size: 16px !important; /* حجم خط مناسب للكتابة */
+                padding: 15px !important;
+            }
+            button {
+                font-size: 18px !important;
+                padding: 18px !important;
+            }
+            h2#title {
+                font-size: 24px !important;
+                margin-top: 0;
+            }
+            .tab {
+                padding: 10px 15px !important;
+                font-size: 15px;
+            }
+        }
+
+        /* باقي الـ CSS كما هو دون تغيير */
         .tabs { display: flex; justify-content: center; margin-bottom: 25px; gap: 10px; }
         .tab { padding: 8px 20px; cursor: pointer; color: #777; transition: 0.3s; border-radius: 50px; background: rgba(255,255,255,0.05); }
         .tab.active { color: #000; background: var(--gold); }
-        input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; text-align: center; outline: none; user-select: text !important; }
-        button { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 12px; color: #000; margin-top: 15px; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; text-align: center; outline: none; box-sizing: border-box; user-select: text !important; }
+        button { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 12px; color: #000; margin-top: 15px; font-size: 16px; }
+        
         #viewer-container { display: none; background: #0f0f0f; min-height: 100vh; }
         #pdf-area { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
         .page-slot { width: 95%; max-width: 800px; min-height: 400px; margin-bottom: 25px; display: flex; justify-content: center; align-items: center; }
@@ -33,7 +94,7 @@
                 <div id="t1" class="tab active" onclick="s('login')">دخول</div>
                 <div id="t2" class="tab" onclick="s('reg')">جديد</div>
             </div>
-            <h2 id="title" style="color: var(--gold);">اقرأ وارتقِ</h2>
+            <h2 id="title" style="color: var(--gold); font-size: 28px; transition: 0.3s;">اقرأ وارتقِ</h2>
             <input type="text" id="u" placeholder="اليوزر" oncontextmenu="event.stopPropagation()">
             <input type="password" id="p" placeholder="الباسورد" oncontextmenu="event.stopPropagation()">
             <input type="number" id="a" placeholder="السن" style="display:none;" oncontextmenu="event.stopPropagation()">
@@ -45,6 +106,7 @@
     <div id="viewer-container"><div id="pdf-area"></div></div>
 
     <script>
+        // الـ JavaScript كما هو دون تغيير
         (function() {
             const _0x = {
                 k: "QUl6YVN5Qkp3a2JmZEJiMllwMWlncTZTbmhDaXZLV2c1NG0tY093",
@@ -54,7 +116,6 @@
             };
             const _dec = v => atob(v);
             
-            // ضبط المسار لتحميل الخطوط بشكل صحيح
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
             firebase.initializeApp({ apiKey: _dec(_0x.k), databaseURL: _dec(_0x.d) });
@@ -116,12 +177,11 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('viewer-container').style.display = 'block';
                 
-                // إضافة إعدادات الـ CMap لضمان عدم ظهور الكلام بايظ
                 const loadingTask = pdfjsLib.getDocument({
                     url: _dec(_0x.l),
                     cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
                     cMapPacked: true,
-                    disableFontFace: true // هذا السطر يحل أغلب مشاكل الكلام البايظ في المتصفحات
+                    disableFontFace: true 
                 });
 
                 const pdf = await loadingTask.promise;
@@ -135,7 +195,7 @@
                     const obs = new IntersectionObserver(async (entries) => {
                         if (entries[0].isIntersecting && slot.innerHTML === "") {
                             const page = await pdf.getPage(i);
-                            const vp = page.getViewport({ scale: 1.5 }); // رفعنا الجودة قليلاً
+                            const vp = page.getViewport({ scale: 1.5 });
                             const canv = document.createElement('canvas');
                             const ctx = canv.getContext('2d');
                             canv.height = vp.height; canv.width = vp.width;
